@@ -1,0 +1,10 @@
+# Servicios systemd a habilitar al boot.
+# install.sh corre: sudo systemctl enable <servicio>
+# (sin --now: arrancan tras el proximo reboot; en una maquina ya corriendo
+# el enable es idempotente y no toca los procesos ya vivos).
+
+NetworkManager.service
+bluetooth.service
+docker.service
+sshd.service
+ufw.service

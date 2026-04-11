@@ -29,7 +29,6 @@ xournalpp() {
     done
     setsid -f /usr/bin/xournalpp "$@" >/dev/null 2>&1
 }
-alias play3="setsid -f /home/jony/play3/rpcs3-v0.0.40-19184-fb194241_linux64.AppImage >/dev/null 2>&1"
 alias what="setsid -f /opt/brave-bin/brave --profile-directory=Default --app-id=hnpfjngllnobngcgfapefoaidbinmjnm >/dev/null 2>&1"
 alias o="sudo systemctl poweroff -i"
 alias u='sudo pacman -Syu'

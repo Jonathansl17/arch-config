@@ -21,6 +21,8 @@ MAPPINGS=(
     "sxhkd/sxhkdrc            $HOME/.config/sxhkd/sxhkdrc"
     "alacritty/alacritty.toml $HOME/.config/alacritty/alacritty.toml"
     "bash/bashrc              $HOME/.bashrc"
+    "bash/bash_profile        $HOME/.bash_profile"
+    "xinit/xinitrc            $HOME/.xinitrc"
 )
 
 read_pkglist() {
@@ -111,5 +113,16 @@ done
 # bspwmrc debe ser ejecutable
 chmod +x "$HOME/.config/bspwm/bspwmrc" 2>/dev/null || true
 
+# --- 5. Servicios systemd ---
+say "Habilitando servicios systemd (services.txt)"
+services=$(read_pkglist "$REPO_DIR/services.txt")
+if [[ -n "$services" ]]; then
+    # shellcheck disable=SC2086
+    sudo systemctl enable $services
+else
+    warn "services.txt vacio o ausente, saltando"
+fi
+
 say "Listo. Si bspwm/sxhkd estan corriendo, recarga con:"
 printf '    bspc wm -r && pkill -USR1 -x sxhkd\n'
+say "En una maquina nueva: reinicia para que los servicios arranquen."
