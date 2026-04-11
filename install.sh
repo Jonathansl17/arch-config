@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Instala paquetes (repos + AUR) y configs en ~/.config y ~.
-# Idempotente: pacman --needed y yay --needed saltan lo ya instalado;
-# los archivos con contenido identico se dejan en paz.
-# Archivos existentes que difieren se respaldan a <archivo>.bak-<timestamp>.
+# Installs packages (official repos + AUR) and configs into ~/.config and ~.
+# Idempotent: pacman --needed and yay --needed skip anything already installed;
+# config files with identical content are left untouched. Existing files that
+# differ are backed up to <file>.bak-<timestamp> before being replaced.
 #
-# Uso: ./install.sh
+# Usage: ./install.sh
 
 set -euo pipefail
 
@@ -15,7 +15,7 @@ say()  { printf '\033[1;36m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m!!\033[0m %s\n' "$*"; }
 die()  { printf '\033[1;31m!!\033[0m %s\n' "$*" >&2; exit 1; }
 
-# origen_relativo_al_repo  destino_absoluto
+# repo_relative_source  absolute_destination
 MAPPINGS=(
     "bspwm/bspwmrc            $HOME/.config/bspwm/bspwmrc"
     "sxhkd/sxhkdrc            $HOME/.config/sxhkd/sxhkdrc"
@@ -26,7 +26,7 @@ MAPPINGS=(
 )
 
 read_pkglist() {
-    # Lee un archivo tipo pacman list: ignora comentarios (#...) y lineas vacias.
+    # Reads a pacman-style list: strips comments (#...) and blank lines.
     local file="$1"
     [[ -f "$file" ]] || return 0
     sed -e 's/#.*//' -e '/^[[:space:]]*$/d' "$file"
@@ -37,7 +37,7 @@ install_file() {
     local dst="$2"
 
     if [[ ! -f "$src" ]]; then
-        warn "fuente no existe: $src (saltando)"
+        warn "source missing: $src (skipping)"
         return
     fi
 
@@ -45,7 +45,7 @@ install_file() {
 
     if [[ -e "$dst" || -L "$dst" ]]; then
         if cmp -s "$src" "$dst"; then
-            say "sin cambios: $dst"
+            say "unchanged: $dst"
             return
         fi
         local backup="${dst}.bak-${TIMESTAMP}"
@@ -54,75 +54,75 @@ install_file() {
     fi
 
     cp "$src" "$dst"
-    say "instalado: $dst"
+    say "installed: $dst"
 }
 
-# --- 0. Prerequisitos minimos (git para clonar AUR, base-devel para makepkg) ---
-# Si clonaste el repo ya tenes git, pero si lo descargaste como zip puede faltar.
-# base-devel hace falta para bootstrapear yay en el paso 2.
-say "Verificando prerequisitos (git, base-devel)"
+# --- 0. Minimum prerequisites (git to clone AUR, base-devel for makepkg) ---
+# If you cloned the repo you already have git, but if you downloaded it as a
+# zip it might be missing. base-devel is required to bootstrap yay in step 2.
+say "Checking prerequisites (git, base-devel)"
 prereqs=()
 command -v git     >/dev/null 2>&1 || prereqs+=(git)
 command -v makepkg >/dev/null 2>&1 || prereqs+=(base-devel)
 if (( ${#prereqs[@]} > 0 )); then
-    warn "faltan: ${prereqs[*]} — instalando"
+    warn "missing: ${prereqs[*]} — installing"
     sudo pacman -S --needed --noconfirm "${prereqs[@]}"
 fi
 
-# --- 1. Paquetes oficiales ---
-say "Instalando paquetes oficiales (packages.txt)"
+# --- 1. Official packages ---
+say "Installing official packages (packages.txt)"
 pkgs=$(read_pkglist "$REPO_DIR/packages.txt")
 if [[ -n "$pkgs" ]]; then
     # shellcheck disable=SC2086
     sudo pacman -S --needed --noconfirm $pkgs
 else
-    warn "packages.txt vacio o ausente, saltando"
+    warn "packages.txt empty or missing, skipping"
 fi
 
-# --- 2. Bootstrap yay (si no esta) ---
+# --- 2. Bootstrap yay (if missing) ---
 if ! command -v yay >/dev/null 2>&1; then
-    say "yay no encontrado, bootstrapeando desde AUR"
-    command -v git     >/dev/null || die "git es requerido para bootstrapear yay"
-    command -v makepkg >/dev/null || die "base-devel es requerido para bootstrapear yay"
+    say "yay not found, bootstrapping from AUR"
+    command -v git     >/dev/null || die "git is required to bootstrap yay"
+    command -v makepkg >/dev/null || die "base-devel is required to bootstrap yay"
 
     tmp=$(mktemp -d)
     git clone --depth=1 https://aur.archlinux.org/yay.git "$tmp/yay"
     ( cd "$tmp/yay" && makepkg -si --noconfirm )
     rm -rf "$tmp"
 else
-    say "yay ya instalado"
+    say "yay already installed"
 fi
 
-# --- 3. Paquetes AUR ---
-say "Instalando paquetes AUR (aur.txt)"
+# --- 3. AUR packages ---
+say "Installing AUR packages (aur.txt)"
 aur_pkgs=$(read_pkglist "$REPO_DIR/aur.txt")
 if [[ -n "$aur_pkgs" ]]; then
     # shellcheck disable=SC2086
     yay -S --needed --noconfirm $aur_pkgs
 else
-    warn "aur.txt vacio o ausente, saltando"
+    warn "aur.txt empty or missing, skipping"
 fi
 
 # --- 4. Configs ---
-say "Instalando configs desde $REPO_DIR"
+say "Installing configs from $REPO_DIR"
 for entry in "${MAPPINGS[@]}"; do
     # shellcheck disable=SC2086
     install_file $entry
 done
 
-# bspwmrc debe ser ejecutable
+# bspwmrc must be executable
 chmod +x "$HOME/.config/bspwm/bspwmrc" 2>/dev/null || true
 
-# --- 5. Servicios systemd ---
-say "Habilitando servicios systemd (services.txt)"
+# --- 5. systemd services ---
+say "Enabling systemd services (services.txt)"
 services=$(read_pkglist "$REPO_DIR/services.txt")
 if [[ -n "$services" ]]; then
     # shellcheck disable=SC2086
     sudo systemctl enable $services
 else
-    warn "services.txt vacio o ausente, saltando"
+    warn "services.txt empty or missing, skipping"
 fi
 
-say "Listo. Si bspwm/sxhkd estan corriendo, recarga con:"
+say "Done. If bspwm/sxhkd are already running, reload with:"
 printf '    bspc wm -r && pkill -USR1 -x sxhkd\n'
-say "En una maquina nueva: reinicia para que los servicios arranquen."
+say "On a fresh machine: reboot so the enabled services start."

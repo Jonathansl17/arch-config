@@ -1,7 +1,7 @@
-# Servicios systemd a habilitar al boot.
-# install.sh corre: sudo systemctl enable <servicio>
-# (sin --now: arrancan tras el proximo reboot; en una maquina ya corriendo
-# el enable es idempotente y no toca los procesos ya vivos).
+# systemd services to enable at boot.
+# install.sh runs: sudo systemctl enable <service>
+# (without --now: they start on the next reboot. On a running machine
+# `enable` is idempotent and leaves live processes alone.)
 
 NetworkManager.service
 bluetooth.service

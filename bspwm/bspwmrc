@@ -4,24 +4,24 @@ pgrep -x sxhkd > /dev/null || sxhkd &
 
 xsetroot -cursor_name left_ptr
 
-# Monitores: activa HDMI-1-1 a la derecha de eDP si está conectado
+# Monitors: enables HDMI-1-1 to the right of eDP when connected.
 if xrandr --query | grep -q "^HDMI-1-1 connected"; then
     xrandr --output eDP --primary --auto \
            --output HDMI-1-1 --auto --right-of eDP
     bspc monitor eDP      -d I II III IV V       # laptop: super+1..5
-    bspc monitor HDMI-1-1 -d VI VII VIII IX X    # externo: super+6..0 (0 = X)
+    bspc monitor HDMI-1-1 -d VI VII VIII IX X    # external: super+6..0 (0 = X)
 else
-    bspc monitor -d I II III IV V VI VII VIII IX X  # sin HDMI: los 10 en eDP
+    bspc monitor -d I II III IV V VI VII VIII IX X  # no HDMI: all 10 on eDP
 fi
 
 bspc config presel_feedback      false
 
 bspc config focused_border_color "#FFFFFF"
 
-# Terminales lanzadas desde los keybinds de split
+# Terminals launched via the split keybinds
 bspc rule -a split_term state=tiled layer=normal
 
-# Apps principales: tiled + follow + focus
+# Main apps: tiled + follow + focus
 bspc rule -a Code            follow=on focus=on
 bspc rule -a code-oss        follow=on focus=on
 bspc rule -a Code-oss        follow=on focus=on

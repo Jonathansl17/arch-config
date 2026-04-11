@@ -1,9 +1,9 @@
-# Paquetes de AUR explicitamente instalados.
-# Instalacion: yay -S --needed - < aur.txt
-# install.sh bootstrapea yay si no existe y despues instala esta lista.
+# AUR packages, explicitly installed.
+# Install: yay -S --needed - < aur.txt
+# install.sh bootstraps yay if missing, then installs this list.
 #
-# yay y yay-debug se excluyen a proposito: yay se bootstrapea en install.sh
-# antes de leer este archivo, y yay-debug es un subproducto del build.
+# yay and yay-debug are intentionally excluded: yay is bootstrapped in
+# install.sh before this file is read, and yay-debug is a build byproduct.
 
 android-sdk-cmdline-tools-latest
 brave-bin

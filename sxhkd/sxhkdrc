@@ -1,35 +1,35 @@
-# TERMINAL (bspwm la acomoda tiled: split si hay ventanas, llena desktop si no)
+# TERMINAL (bspwm tiles it: split if there are windows, fills the desktop otherwise)
 control + less
     alacritty
 
-# CERRAR VENTANA
+# CLOSE WINDOW
 control + q
     bspc node -c
 
 
 ########################
-# SPLITS (lanzan alacritty con clase split_term)
+# SPLITS (launch alacritty with class split_term)
 ########################
 
-# SPLIT DERECHA
+# SPLIT RIGHT
 control + shift + d
     bspc node -p east; alacritty --class split_term,split_term
 
-# SPLIT IZQUIERDA
+# SPLIT LEFT
 control + shift + a
     bspc node -p west; alacritty --class split_term,split_term
 
-# SPLIT ARRIBA
+# SPLIT UP
 control + shift + w
     bspc node -p north; alacritty --class split_term,split_term
 
-# SPLIT ABAJO
+# SPLIT DOWN
 control + shift + s
     bspc node -p south; alacritty --class split_term,split_term
 
 
 ########################
-# NAVEGACIÓN ENTRE PANELES
+# PANEL NAVIGATION
 ########################
 
 control + Left
@@ -46,7 +46,7 @@ control + Down
 
 
 ########################
-# MOVER VENTANAS DENTRO DEL DESKTOP
+# MOVE WINDOWS WITHIN DESKTOP
 ########################
 
 control + shift + Left
@@ -63,7 +63,7 @@ control + shift + Down
 
 
 ########################
-# MOVER VENTANA A OTRO MONITOR (con follow)
+# MOVE WINDOW TO ANOTHER MONITOR (with follow)
 ########################
 
 control + alt + Left
@@ -74,14 +74,14 @@ control + alt + Right
 
 
 ########################
-# CICLAR VENTANAS
+# WINDOW CYCLING
 ########################
 
-# Alternar entre la última ventana enfocada y la actual (funciona aun en fullscreen)
+# Toggle between the last focused window and the current one (works even in fullscreen)
 alt + Tab
     bspc node -f last.window
 
-# Des-fullscreen y ciclar dentro del desktop actual
+# Un-fullscreen and cycle within the current desktop
 control + alt + Tab
     bspc node focused.fullscreen -t tiled; bspc node -f next.local.window
 
@@ -95,7 +95,7 @@ control + period
 
 
 ########################
-# APLICACIONES
+# APPLICATIONS
 ########################
 
 super + b
@@ -104,7 +104,7 @@ super + b
 super + e
     thunar
 
-# BLOQUEAR PANTALLA (pide password por PAM)
+# LOCK SCREEN (asks for password via PAM)
 super + l
     i3lock -n -c 000000
 
@@ -113,8 +113,8 @@ Print
 
 
 ########################
-# DESKTOPS (super + número)
-# 1-5 → eDP (laptop) | 6-0 → HDMI-1-1 (externo)
+# DESKTOPS (super + number)
+# 1-5 -> eDP (laptop) | 6-0 -> HDMI-1-1 (external)
 ########################
 
 super + 1
@@ -140,7 +140,7 @@ super + 0
 
 
 ########################
-# MOVER VENTANA A DESKTOP (super + shift + número, sigue el foco)
+# MOVE WINDOW TO DESKTOP (super + shift + number, follows focus)
 ########################
 
 super + shift + 1
@@ -164,7 +164,7 @@ super + shift + 9
 super + shift + 0
     bspc node -d X --follow
 
-# VOLUMEN (salida)
+# VOLUME (output)
 XF86AudioRaiseVolume
     wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ 5%+
 

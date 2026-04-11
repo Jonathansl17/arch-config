@@ -1,8 +1,8 @@
-# Paquetes oficiales (repos pacman) explicitamente instalados.
-# Instalacion: sudo pacman -S --needed - < packages.txt
-# (install.sh lo hace automaticamente).
+# Official packages (pacman repos), explicitly installed.
+# Install: sudo pacman -S --needed - < packages.txt
+# (install.sh does this automatically.)
 
-# --- Sistema base ---
+# --- Base system ---
 base
 base-devel
 linux
@@ -15,7 +15,7 @@ os-prober
 sudo
 zram-generator
 
-# --- Red ---
+# --- Network ---
 networkmanager
 network-manager-applet
 wpa_supplicant
@@ -35,7 +35,7 @@ wireplumber
 gst-plugin-pipewire
 libpulse
 
-# --- Graficos (drivers video) ---
+# --- Graphics (video drivers) ---
 xorg-server
 xorg-xinit
 xorg-xrandr
@@ -50,17 +50,17 @@ vulkan-radeon
 intel-media-driver
 libva-intel-driver
 
-# --- Window manager y keybindings ---
+# --- Window manager and keybindings ---
 bspwm
 sxhkd
 dmenu
 i3lock
 
-# --- Terminales ---
+# --- Terminals ---
 alacritty
 rxvt-unicode
 
-# --- File managers y utilidades ---
+# --- File managers and utilities ---
 thunar
 thunar-archive-plugin
 gvfs
@@ -84,7 +84,7 @@ telegram-desktop
 discord
 freerdp
 
-# --- Desarrollo ---
+# --- Development ---
 git
 github-cli
 cmake
@@ -95,7 +95,7 @@ postgresql
 python-pyqt5
 android-tools
 
-# --- Shell / utilidades CLI ---
+# --- Shell / CLI utilities ---
 bash-completion
 fastfetch
 htop
@@ -105,6 +105,6 @@ vim
 zip
 luajit
 
-# --- Energia / hardware monitoring ---
+# --- Power / hardware monitoring ---
 power-profiles-daemon
 smartmontools
