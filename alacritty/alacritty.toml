@@ -1,0 +1,9 @@
+[keyboard]
+bindings = [
+  { key = "C", mods = "Control", action = "Copy" },
+  { key = "V", mods = "Control", action = "Paste" },
+  { key = "Return", mods = "Shift", chars = "\u001B\r" },
+]
+
+[font]
+size = 14

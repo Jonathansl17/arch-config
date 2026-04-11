@@ -1,0 +1,110 @@
+# Paquetes oficiales (repos pacman) explicitamente instalados.
+# Instalacion: sudo pacman -S --needed - < packages.txt
+# (install.sh lo hace automaticamente).
+
+# --- Sistema base ---
+base
+base-devel
+linux
+linux-firmware
+amd-ucode
+sof-firmware
+grub
+efibootmgr
+os-prober
+sudo
+zram-generator
+
+# --- Red ---
+networkmanager
+network-manager-applet
+wpa_supplicant
+wget
+ufw
+
+# --- Bluetooth ---
+bluez
+bluez-utils
+
+# --- Audio (PipeWire stack) ---
+pipewire
+pipewire-alsa
+pipewire-jack
+pipewire-pulse
+wireplumber
+gst-plugin-pipewire
+libpulse
+
+# --- Graficos (drivers video) ---
+xorg-server
+xorg-xinit
+xorg-xrandr
+xorg-xset
+xorg-xsetroot
+xf86-video-amdgpu
+xf86-video-ati
+xf86-video-nouveau
+vulkan-intel
+vulkan-nouveau
+vulkan-radeon
+intel-media-driver
+libva-intel-driver
+
+# --- Window manager y keybindings ---
+bspwm
+sxhkd
+dmenu
+i3lock
+
+# --- Terminales ---
+alacritty
+rxvt-unicode
+
+# --- File managers y utilidades ---
+thunar
+thunar-archive-plugin
+gvfs
+file-roller
+xdg-utils
+xdo
+xdotool
+
+# --- Screenshot (Print -> maim -s | xclip) ---
+maim
+slop
+xclip
+
+# --- Apps ---
+libreoffice-fresh
+evince
+xournalpp
+mpv
+obs-studio
+telegram-desktop
+discord
+freerdp
+
+# --- Desarrollo ---
+git
+github-cli
+cmake
+docker
+docker-compose
+jdk21-openjdk
+postgresql
+python-pyqt5
+android-tools
+
+# --- Shell / utilidades CLI ---
+bash-completion
+fastfetch
+htop
+less
+nano
+vim
+zip
+luajit
+
+# --- Energia / hardware monitoring ---
+power-profiles-daemon
+smartmontools

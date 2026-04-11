@@ -1,0 +1,15 @@
+# Paquetes de AUR explicitamente instalados.
+# Instalacion: yay -S --needed - < aur.txt
+# install.sh bootstrapea yay si no existe y despues instala esta lista.
+#
+# yay y yay-debug se excluyen a proposito: yay se bootstrapea en install.sh
+# antes de leer este archivo, y yay-debug es un subproducto del build.
+
+android-sdk-cmdline-tools-latest
+brave-bin
+intellij-idea-ultimate-edition
+ngrok
+pgadmin4-desktop-bin
+postman-bin
+visual-studio-code-bin
+zoom

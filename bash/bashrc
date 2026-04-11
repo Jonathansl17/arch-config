@@ -1,0 +1,112 @@
+#
+# ~/.bashrc
+#
+
+# If not running interactively, don't do anything
+[[ $- != *i* ]] && return
+
+alias ls='ls --color=auto'
+alias la='ls -ldA --color=auto .[!.]* ..?* 2>/dev/null'
+alias grep='grep --color=auto'
+PS1='[\u@\h \[\033[1;96m\]\W\[\033[0m\]]\$ '
+stty intr ^Z
+stty susp ^C
+alias pgadmin4="setsid -f /usr/pgadmin4/bin/pgadmin4 >/dev/null 2>&1"
+alias postman="setsid -f postman >/dev/null 2>&1"
+alias idea="setsid -f idea >/dev/null 2>&1"
+alias code="setsid -f code >/dev/null 2>&1"
+alias brave="setsid -f brave >/dev/null 2>&1"
+alias thunar="setsid -f thunar >/dev/null 2>&1"
+alias discord="setsid -f discord >/dev/null 2>&1"
+alias telegram="setsid -f Telegram >/dev/null 2>&1"
+alias obs="setsid -f obs >/dev/null 2>&1"
+xournalpp() {
+    for arg in "$@"; do
+        case "$arg" in
+            -*) ;;
+            *.xopp) [ -e "$arg" ] || cp ~/.config/xournalpp/blank_template.xopp "$arg" ;;
+        esac
+    done
+    setsid -f /usr/bin/xournalpp "$@" >/dev/null 2>&1
+}
+alias play3="setsid -f /home/jony/play3/rpcs3-v0.0.40-19184-fb194241_linux64.AppImage >/dev/null 2>&1"
+alias what="setsid -f /opt/brave-bin/brave --profile-directory=Default --app-id=hnpfjngllnobngcgfapefoaidbinmjnm >/dev/null 2>&1"
+alias o="sudo systemctl poweroff -i"
+alias u='sudo pacman -Syu'
+alias s='git add . && MSG=$(git diff --cached | claude -p "Genera un mensaje de commit conciso para estos cambios. Responde SOLO con el mensaje.") && git commit -m "$MSG" && git push'
+
+export PATH="$HOME/.local/bin:$PATH"
+
+# Bash completion (incluye completado después de sudo)
+[ -r /usr/share/bash-completion/bash_completion ] && . /usr/share/bash-completion/bash_completion
+
+# === Android / Java toolchain ===
+export JAVA_HOME=/usr/lib/jvm/java-21-openjdk
+export ANDROID_HOME=/opt/android-sdk
+export ANDROID_SDK_ROOT=$ANDROID_HOME
+export PATH=$PATH:$JAVA_HOME/bin:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/build-tools/34.0.0
+
+# === termclip configuration ===
+# Terminal clipboard utilities (c, v, cc)
+# Added automatically on Sat Apr 11 02:59:00 PM UTC 2026
+export PATH="$HOME/bin:$PATH"
+#This is the bash configuration file for my custom scripts
+export PATH="$HOME/bin:$PATH"
+
+#Copy a file to clipboard from terminal
+c() {
+    if [ $# -lt 1 ]; then
+        echo "Usage: c file1 file2 ..."
+        return 1
+    fi
+
+    # Kill previous c.py processes
+    pkill -f "$HOME/bin/c.py" 2>/dev/null
+
+    # Launch new
+    "$HOME/bin/c.py" "$@" >/dev/null 2>&1 & disown
+
+    echo "Files copied to clipboard:"
+    for f in "$@"; do
+        echo "   $f"
+    done
+}
+
+# Copy the text content of a file to the clipboard
+cc() {
+    if [ $# -lt 1 ]; then
+        echo "Usage: cc file"
+        return 1
+    fi
+
+    # Kill previous cc.py processes
+    pkill -f "$HOME/bin/cc.py" 2>/dev/null
+
+    # Launch new
+    "$HOME/bin/cc.py" "$1" >/dev/null 2>&1 & disown
+
+    echo "Content copied to clipboard from:"
+    echo "   $1"
+}
+
+# Paste a file from the clipboard into the current directory
+v() {
+    output=$("$HOME/bin/v.py" "$@")
+    if [ $? -ne 0 ]; then
+        echo "No files found in clipboard."
+        return 1
+    fi
+
+    echo "Files pasted from clipboard:"
+    for f in $output; do
+        echo "   $f"
+    done
+}
+
+# === end termclip ===
+
+# === local overrides (NO VERSIONADO) ===
+# ~/.bashrc.local es para aliases/variables con credenciales, tokens
+# o cualquier cosa especifica de esta maquina que no deba viajar al repo.
+# Si no existe, no pasa nada — este bloque es opcional.
+[ -f "$HOME/.bashrc.local" ] && . "$HOME/.bashrc.local"

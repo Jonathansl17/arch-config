@@ -1,0 +1,175 @@
+# TERMINAL (bspwm la acomoda tiled: split si hay ventanas, llena desktop si no)
+control + less
+    alacritty
+
+# CERRAR VENTANA
+control + q
+    bspc node -c
+
+
+########################
+# SPLITS (lanzan alacritty con clase split_term)
+########################
+
+# SPLIT DERECHA
+control + shift + d
+    bspc node -p east; alacritty --class split_term,split_term
+
+# SPLIT IZQUIERDA
+control + shift + a
+    bspc node -p west; alacritty --class split_term,split_term
+
+# SPLIT ARRIBA
+control + shift + w
+    bspc node -p north; alacritty --class split_term,split_term
+
+# SPLIT ABAJO
+control + shift + s
+    bspc node -p south; alacritty --class split_term,split_term
+
+
+########################
+# NAVEGACIÓN ENTRE PANELES
+########################
+
+control + Left
+    bspc node -f west
+
+control + Right
+    bspc node -f east
+
+control + Up
+    bspc node -f north
+
+control + Down
+    bspc node -f south
+
+
+########################
+# MOVER VENTANAS DENTRO DEL DESKTOP
+########################
+
+control + shift + Left
+    bspc node -s west
+
+control + shift + Right
+    bspc node -s east
+
+control + shift + Up
+    bspc node -s north
+
+control + shift + Down
+    bspc node -s south
+
+
+########################
+# MOVER VENTANA A OTRO MONITOR (con follow)
+########################
+
+control + alt + Left
+    bspc node -m prev --follow
+
+control + alt + Right
+    bspc node -m next --follow
+
+
+########################
+# CICLAR VENTANAS
+########################
+
+# Alternar entre la última ventana enfocada y la actual (funciona aun en fullscreen)
+alt + Tab
+    bspc node -f last.window
+
+# Des-fullscreen y ciclar dentro del desktop actual
+control + alt + Tab
+    bspc node focused.fullscreen -t tiled; bspc node -f next.local.window
+
+
+########################
+# FULLSCREEN TOGGLE
+########################
+
+control + period
+    bspc node -t ~fullscreen
+
+
+########################
+# APLICACIONES
+########################
+
+super + b
+    brave
+
+super + e
+    thunar
+
+# BLOQUEAR PANTALLA (pide password por PAM)
+super + l
+    i3lock -n -c 000000
+
+Print
+    sh -c 'maim -s | xclip -selection clipboard -t image/png'
+
+
+########################
+# DESKTOPS (super + número)
+# 1-5 → eDP (laptop) | 6-0 → HDMI-1-1 (externo)
+########################
+
+super + 1
+    bspc desktop -f I
+super + 2
+    bspc desktop -f II
+super + 3
+    bspc desktop -f III
+super + 4
+    bspc desktop -f IV
+super + 5
+    bspc desktop -f V
+super + 6
+    bspc desktop -f VI
+super + 7
+    bspc desktop -f VII
+super + 8
+    bspc desktop -f VIII
+super + 9
+    bspc desktop -f IX
+super + 0
+    bspc desktop -f X
+
+
+########################
+# MOVER VENTANA A DESKTOP (super + shift + número, sigue el foco)
+########################
+
+super + shift + 1
+    bspc node -d I --follow
+super + shift + 2
+    bspc node -d II --follow
+super + shift + 3
+    bspc node -d III --follow
+super + shift + 4
+    bspc node -d IV --follow
+super + shift + 5
+    bspc node -d V --follow
+super + shift + 6
+    bspc node -d VI --follow
+super + shift + 7
+    bspc node -d VII --follow
+super + shift + 8
+    bspc node -d VIII --follow
+super + shift + 9
+    bspc node -d IX --follow
+super + shift + 0
+    bspc node -d X --follow
+
+# VOLUMEN (salida)
+XF86AudioRaiseVolume
+    wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ 5%+
+
+XF86AudioLowerVolume
+    wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-
+
+XF86AudioMute
+    wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
