@@ -23,6 +23,7 @@ MAPPINGS=(
     "bash/bashrc              $HOME/.bashrc"
     "bash/bash_profile        $HOME/.bash_profile"
     "xinit/xinitrc            $HOME/.xinitrc"
+    "templates/template.xopp  $HOME/templates/template.xopp"
 )
 
 read_pkglist() {

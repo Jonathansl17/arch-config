@@ -24,7 +24,7 @@ xournalpp() {
     for arg in "$@"; do
         case "$arg" in
             -*) ;;
-            *.xopp) [ -e "$arg" ] || cp ~/.config/xournalpp/blank_template.xopp "$arg" ;;
+            *.xopp) [ -e "$arg" ] || cp ~/templates/template.xopp "$arg" ;;
         esac
     done
     setsid -f /usr/bin/xournalpp "$@" >/dev/null 2>&1

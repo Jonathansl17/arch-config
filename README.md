@@ -23,6 +23,12 @@ login goes straight from TTY1 into X via `.bash_profile` → `startx` →
 - **6 config files** copied into `~` / `~/.config`:
   `bspwm/bspwmrc`, `sxhkd/sxhkdrc`, `alacritty/alacritty.toml`, `bash/bashrc`,
   `bash/bash_profile`, `xinit/xinitrc`.
+- **Xournal++ default template** at `templates/template.xopp` →
+  `~/templates/template.xopp`. The `xournalpp` shell function in `bash/bashrc`
+  uses it: when invoked as `xournalpp file.xopp` with a non-existent path, it
+  copies the template to that path before launching. If the file already
+  exists, it opens normally without touching it. With no args, xournalpp
+  opens as usual.
 
 ## Usage
 
@@ -124,8 +130,10 @@ arch-config/
 │   └── bspwmrc
 ├── sxhkd/
 │   └── sxhkdrc
-└── xinit/
-    └── xinitrc
+├── xinit/
+│   └── xinitrc
+└── templates/
+    └── template.xopp    # default template for new .xopp files (used by xournalpp() in bashrc)
 ```
 
 ## License
