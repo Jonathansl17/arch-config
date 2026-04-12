@@ -134,6 +134,10 @@ else
     warn "services.txt empty or missing, skipping"
 fi
 
+# --- 6. Keyboard layout (LATAM) ---
+say "Setting X11 keyboard layout to latam"
+localectl set-x11-keymap latam pc105+inet "" terminate:ctrl_alt_bksp
+
 say "Done. If bspwm/sxhkd are already running, reload with:"
 printf '    bspc wm -r && pkill -USR1 -x sxhkd\n'
 say "On a fresh machine: reboot so the enabled services start."

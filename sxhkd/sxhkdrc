@@ -109,7 +109,7 @@ super + l
     slock
 
 Print
-    sh -c 'maim -s | xclip -selection clipboard -t image/png'
+    sh -c 'mkdir -p ~/Screenshots && f=~/Screenshots/$(date +%Y%m%d-%H%M%S).png && maim -s "$f" && xclip -selection clipboard -t image/png < "$f"'
 
 
 ########################
