@@ -124,6 +124,11 @@ fi
 cp "$REPO_DIR/slock/config.h" "$SLOCK_BUILD/config.h"
 ( cd "$SLOCK_BUILD" && sudo make clean install )
 
+# --- 4c. sysctl tweaks ---
+say "Installing sysctl configs"
+sudo cp "$REPO_DIR/sysctl/99-swappiness.conf" /etc/sysctl.d/99-swappiness.conf
+sudo sysctl --system >/dev/null 2>&1
+
 # --- 5. systemd services ---
 say "Enabling systemd services (services.txt)"
 services=$(read_pkglist "$REPO_DIR/services.txt")
