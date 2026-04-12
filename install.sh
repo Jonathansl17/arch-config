@@ -114,6 +114,16 @@ done
 # bspwmrc must be executable
 chmod +x "$HOME/.config/bspwm/bspwmrc" 2>/dev/null || true
 
+# --- 4b. Build slock from source (custom config: all-black lock screen) ---
+say "Building slock from source"
+SLOCK_BUILD="$HOME/builds/slock"
+if [[ ! -d "$SLOCK_BUILD" ]]; then
+    mkdir -p "$HOME/builds"
+    git clone https://git.suckless.org/slock "$SLOCK_BUILD"
+fi
+cp "$REPO_DIR/slock/config.h" "$SLOCK_BUILD/config.h"
+( cd "$SLOCK_BUILD" && sudo make clean install )
+
 # --- 5. systemd services ---
 say "Enabling systemd services (services.txt)"
 services=$(read_pkglist "$REPO_DIR/services.txt")

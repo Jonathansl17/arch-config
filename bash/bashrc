@@ -33,6 +33,8 @@ alias what="setsid -f /opt/brave-bin/brave --profile-directory=Default --app-id=
 alias o="sudo systemctl poweroff -i"
 alias u='sudo pacman -Syu'
 alias s='git add . && MSG=$(git diff --cached | claude -p "Generate a concise commit message for these changes. Respond ONLY with the message.") && git commit -m "$MSG" && git push'
+alias b='echo "$(cat /sys/class/power_supply/BAT1/capacity)% — $(cat /sys/class/power_supply/BAT1/status)"'
+alias d='date'
 
 export PATH="$HOME/.local/bin:$PATH"
 

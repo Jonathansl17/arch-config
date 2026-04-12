@@ -54,7 +54,7 @@ libva-intel-driver
 bspwm
 sxhkd
 dmenu
-i3lock
+# slock is compiled from source (see install.sh step 4b)
 
 # --- Terminals ---
 alacritty

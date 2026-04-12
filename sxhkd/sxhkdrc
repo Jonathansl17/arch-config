@@ -106,7 +106,7 @@ super + e
 
 # LOCK SCREEN (asks for password via PAM)
 super + l
-    i3lock -n -c 000000
+    slock
 
 Print
     sh -c 'maim -s | xclip -selection clipboard -t image/png'
