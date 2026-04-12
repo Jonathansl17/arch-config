@@ -20,15 +20,6 @@ alias thunar="setsid -f thunar >/dev/null 2>&1"
 alias discord="setsid -f discord >/dev/null 2>&1"
 alias telegram="setsid -f Telegram >/dev/null 2>&1"
 alias obs="setsid -f obs >/dev/null 2>&1"
-xournalpp() {
-    for arg in "$@"; do
-        case "$arg" in
-            -*) ;;
-            *.xopp) [ -e "$arg" ] || cp ~/templates/template.xopp "$arg" ;;
-        esac
-    done
-    setsid -f /usr/bin/xournalpp "$@" >/dev/null 2>&1
-}
 alias what="setsid -f /opt/brave-bin/brave --profile-directory=Default --app-id=hnpfjngllnobngcgfapefoaidbinmjnm >/dev/null 2>&1"
 alias o="sudo systemctl poweroff -i"
 alias u='sudo pacman -Syu'
@@ -118,6 +109,20 @@ _set_max_refresh() {
     done < <(echo "$xrandr_out" | grep ' connected' | cut -d' ' -f1)
 }
 _set_max_refresh
+
+# === GUI launcher functions ===
+xournalpp() {
+    for arg in "$@"; do
+        case "$arg" in
+            -*) ;;
+            *.xopp) [ -e "$arg" ] || cp ~/templates/template.xopp "$arg" ;;
+        esac
+    done
+    setsid -f /usr/bin/xournalpp "$@" >/dev/null 2>&1
+}
+libreoffice() {
+    setsid -f /usr/bin/libreoffice "$@" >/dev/null 2>&1
+}
 
 # === local overrides (NOT VERSIONED) ===
 # ~/.bashrc.local is for aliases/variables with credentials, tokens
