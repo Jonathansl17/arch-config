@@ -103,6 +103,22 @@ v() {
 
 # === end termclip ===
 
+# === auto max refresh rate for external monitors ===
+_set_max_refresh() {
+    local output max_rate xrandr_out
+    xrandr_out=$(xrandr)
+    while IFS= read -r output; do
+        [[ "$output" == eDP* ]] && continue
+        max_rate=$(echo "$xrandr_out" \
+            | sed -n "/^${output} connected/,/^[^ ]/{ /^ /p }" \
+            | head -1 | sed 's/^\s*[0-9x]*\s*//' \
+            | grep -oP '[0-9]+\.[0-9]+' \
+            | sort -t. -k1,1nr -k2,2nr | head -1)
+        [ -n "$max_rate" ] && xrandr --output "$output" --rate "$max_rate" 2>/dev/null
+    done < <(echo "$xrandr_out" | grep ' connected' | cut -d' ' -f1)
+}
+_set_max_refresh
+
 # === local overrides (NOT VERSIONED) ===
 # ~/.bashrc.local is for aliases/variables with credentials, tokens
 # or anything machine-specific that must not travel with the repo.
