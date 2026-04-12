@@ -168,21 +168,25 @@ super + shift + 0
 # RESIZE WINDOWS (super + arrow, 50px step)
 ########################
 
-# Expand right
+# Expand right / left / down / up
 super + Right
     bspc node -z right 50 0
-
-# Contract (shrink left)
 super + Left
-    bspc node -z right -50 0
-
-# Expand down
+    bspc node -z left -50 0
 super + Down
-    bspc node -z top 0 50
-
-# Contract (shrink up)
+    bspc node -z bottom 0 50
 super + Up
     bspc node -z top 0 -50
+
+# Contract (shift): shrink from the opposite side
+super + shift + Right
+    bspc node -z left 50 0
+super + shift + Left
+    bspc node -z right -50 0
+super + shift + Down
+    bspc node -z top 0 50
+super + shift + Up
+    bspc node -z bottom 0 -50
 
 
 # VOLUME (output)
