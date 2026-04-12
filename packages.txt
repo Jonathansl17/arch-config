@@ -93,6 +93,7 @@ docker-compose
 jdk21-openjdk
 postgresql
 python-pyqt5
+rust
 android-tools
 
 # --- Shell / CLI utilities ---
