@@ -101,6 +101,9 @@ control + period
 super + b
     brave
 
+super + w
+    setsid -f /opt/brave-bin/brave --profile-directory=Default --app-id=hnpfjngllnobngcgfapefoaidbinmjnm >/dev/null 2>&1
+
 super + e
     thunar
 
