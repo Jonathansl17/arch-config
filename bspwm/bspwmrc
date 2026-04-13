@@ -6,8 +6,13 @@ xsetroot -cursor_name left_ptr
 
 # Monitors: enables HDMI-1-1 to the right of eDP when connected.
 if xrandr --query | grep -q "^HDMI-1-1 connected"; then
+    # Max refresh rate on external monitor
+    max_rate=$(xrandr | sed -n '/^HDMI-1-1 connected/,/^[^ ]/{/^ /p}' \
+        | head -1 | grep -oP '[0-9]+\.[0-9]+' \
+        | sort -t. -k1,1nr -k2,2nr | head -1)
     xrandr --output eDP --primary --auto \
-           --output HDMI-1-1 --auto --right-of eDP
+           --output HDMI-1-1 --auto --right-of eDP \
+           ${max_rate:+--rate "$max_rate"}
     bspc monitor eDP      -d I II III IV V       # laptop: super+1..5
     bspc monitor HDMI-1-1 -d VI VII VIII IX X    # external: super+6..0 (0 = X)
 else
