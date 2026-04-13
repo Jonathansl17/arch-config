@@ -110,6 +110,9 @@ _set_max_refresh() {
 }
 _set_max_refresh
 
+# === network ===
+alias wifi='bash ~/wifi/wifi.sh'
+
 # === GUI launcher functions ===
 xournalpp() {
     for arg in "$@"; do

@@ -24,6 +24,7 @@ MAPPINGS=(
     "bash/bash_profile        $HOME/.bash_profile"
     "xinit/xinitrc            $HOME/.xinitrc"
     "templates/template.xopp  $HOME/templates/template.xopp"
+    "wifi/wifi.sh             $HOME/wifi/wifi.sh"
 )
 
 read_pkglist() {
@@ -111,8 +112,9 @@ for entry in "${MAPPINGS[@]}"; do
     install_file $entry
 done
 
-# bspwmrc must be executable
+# bspwmrc and wifi.sh must be executable
 chmod +x "$HOME/.config/bspwm/bspwmrc" 2>/dev/null || true
+chmod +x "$HOME/wifi/wifi.sh" 2>/dev/null || true
 
 # --- 4b. Build slock from source (custom config: all-black lock screen) ---
 say "Building slock from source"
