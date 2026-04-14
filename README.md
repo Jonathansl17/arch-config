@@ -164,6 +164,7 @@ you need it.
 ./nvidia/install-nvidia.sh --check    # preflight + state probe, no changes
 ./nvidia/install-nvidia.sh            # idempotent install/repair
 ./nvidia/install-nvidia.sh --force    # re-run every phase, skip early-exit
+./nvidia/install-nvidia.sh --nuke     # wipe everything NVIDIA and reinstall from scratch
 ```
 
 What it does (only runs the phases that aren't already in the desired state):

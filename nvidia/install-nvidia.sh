@@ -20,6 +20,9 @@
 #     ./nvidia/install-nvidia.sh          # run full idempotent check + install
 #     ./nvidia/install-nvidia.sh --check  # preflight only, no changes
 #     ./nvidia/install-nvidia.sh --force  # skip "all good" early-exit, re-verify each phase
+#     ./nvidia/install-nvidia.sh --nuke   # DESTRUCTIVE: uninstall everything NVIDIA first,
+#                                         #   then reinstall from scratch. Requires a reboot
+#                                         #   at the end. Prompts for confirmation.
 
 set -euo pipefail
 
@@ -39,17 +42,24 @@ readonly LOG_FILE="${LOG_DIR}/install-$(date +%Y%m%d-%H%M%S).log"
 # ---------- flags ----------
 CHECK_ONLY=0
 FORCE=0
+NUKE=0
 for arg in "$@"; do
     case "$arg" in
         --check) CHECK_ONLY=1 ;;
         --force) FORCE=1 ;;
+        --nuke)  NUKE=1 ;;
         -h|--help)
-            sed -n '2,30p' "$0"
+            sed -n '2,33p' "$0"
             exit 0
             ;;
         *) printf '!! unknown flag: %s\n' "$arg" >&2; exit 2 ;;
     esac
 done
+
+if (( NUKE == 1 )) && (( CHECK_ONLY == 1 )); then
+    printf '!! --nuke and --check are mutually exclusive\n' >&2
+    exit 2
+fi
 
 # ---------- output helpers ----------
 say()  { printf '\033[1;36m==>\033[0m %s\n' "$*" | tee -a "$LOG_FILE" ; }
@@ -159,6 +169,79 @@ if command -v mokutil >/dev/null 2>&1 && mokutil --sb-state 2>/dev/null | grep -
     warn "Secure Boot is ENABLED — DKMS modules won't be signed by default. Plan to sign them or disable SB."
 else
     ok "Secure Boot disabled or mokutil absent (expected)"
+fi
+
+# =============================================================================
+# PHASE 0.5 — NUKE (optional, --nuke only): tear down the whole NVIDIA stack
+#   before reinstalling. Safe even with Xorg running because we only uninstall
+#   packages and regenerate the initramfs; loaded kernel modules stay in memory
+#   until the mandatory reboot at the end. After this phase, Phase 1 is forced
+#   to proceed so Phases 2-8 reinstall from a clean slate.
+# =============================================================================
+if (( NUKE == 1 )); then
+    step "Phase 0.5 — NUKE: tear down everything NVIDIA"
+    warn "This will REMOVE nvidia-open-dkms, nvidia-utils, the nouveau blacklist,"
+    warn "DKMS build artifacts, and the versioned initramfs. A reboot will be"
+    warn "required at the end. Your desktop keeps running on the AMD iGPU during"
+    warn "the process (nvidia modules stay in memory until reboot)."
+    printf '\n'
+    read -rp "Type 'nuke' to confirm: " _confirm
+    if [[ "$_confirm" != "nuke" ]]; then
+        die "aborted: confirmation not given"
+    fi
+
+    # 0.5.1 — Uninstall nvidia userspace + kernel module package.
+    #   Removal succeeds even while Xorg holds /dev/nvidia* open; files vanish
+    #   from disk but the already-mmaped libraries/modules stay valid until
+    #   processes exit. That's why a reboot is mandatory afterwards.
+    installed_nv=()
+    for p in "${NVIDIA_PKGS[@]}"; do
+        pacman -Qi "$p" >/dev/null 2>&1 && installed_nv+=("$p")
+    done
+    if (( ${#installed_nv[@]} > 0 )); then
+        say "Removing: ${installed_nv[*]}"
+        sudo pacman -Rns --noconfirm "${installed_nv[@]}"
+    else
+        ok "no nvidia packages were installed"
+    fi
+
+    # 0.5.2 — Remove the blacklist so nouveau is free to load on next boot if
+    #   we don't reinstall. (We will, but we want a clean slate first.)
+    if [[ -f "$BLACKLIST_FILE" ]]; then
+        say "Removing $BLACKLIST_FILE"
+        sudo rm -f "$BLACKLIST_FILE"
+    else
+        ok "no blacklist file to remove"
+    fi
+
+    # 0.5.3 — Wipe DKMS source/build trees for nvidia (belts and suspenders;
+    #   pacman -Rns should have already handled this).
+    if [[ -d /var/lib/dkms/nvidia ]]; then
+        say "Removing /var/lib/dkms/nvidia"
+        sudo rm -rf /var/lib/dkms/nvidia
+    fi
+    # Orphan .ko files under /lib/modules/*/updates/dkms/ from prior builds
+    while IFS= read -r -d '' ko; do
+        say "Removing stale module: $ko"
+        sudo rm -f "$ko"
+    done < <(sudo find /lib/modules -type f \
+             \( -name 'nvidia.ko*' -o -name 'nvidia_modeset.ko*' \
+                -o -name 'nvidia_drm.ko*' -o -name 'nvidia_uvm.ko*' \
+                -o -name 'nvidia_peermem.ko*' \) \
+             -path '*/updates/dkms/*' -print0 2>/dev/null)
+
+    # 0.5.4 — Regenerate initramfs without nvidia. (mkinitcpio -P rebuilds all
+    #   presets; our HOOKS don't reference nvidia so this just cleans it out.)
+    say "Regenerating initramfs (post-nuke)"
+    sudo mkinitcpio -P
+
+    # 0.5.5 — Reinstall nouveau userspace? No. The user explicitly removed it
+    #   earlier and our desired state excludes it. If they really want nouveau
+    #   back they can `sudo pacman -S xf86-video-nouveau vulkan-nouveau`.
+
+    ok "Nuke complete. Proceeding to reinstall from scratch."
+    # Force the rest of the script to do the full install, skipping early-exit.
+    FORCE=1
 fi
 
 # =============================================================================

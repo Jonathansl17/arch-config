@@ -49,9 +49,30 @@ If any of those is missing or wrong, only the missing phases run.
 ./nvidia/install-nvidia.sh            # idempotent install/repair
 ./nvidia/install-nvidia.sh --check    # preflight + state probe, no changes
 ./nvidia/install-nvidia.sh --force    # skip early-exit, re-run every phase check
+./nvidia/install-nvidia.sh --nuke     # wipe everything NVIDIA and reinstall from scratch
 ```
 
 Logs go to `nvidia/logs/install-<timestamp>.log`.
+
+## `--nuke` — start from a clean slate
+
+Use this when you don't trust the current state (partial install, driver
+updates that left garbage, weird `nvidia-smi` errors that none of the other
+phases fix). It will:
+
+1. Ask you to type `nuke` to confirm.
+2. `pacman -Rns nvidia-open-dkms nvidia-utils`
+3. Remove `/etc/modprobe.d/blacklist-nouveau.conf`
+4. Wipe `/var/lib/dkms/nvidia` and any stale `.ko` files under
+   `/lib/modules/*/updates/dkms/`
+5. Regenerate initramfs (`mkinitcpio -P`)
+6. Then proceed through the normal install phases (2 through 8) to put
+   everything back.
+7. Require a **manual reboot** at the end.
+
+Safe to run while Xorg is up: package removal doesn't unload the nvidia
+kernel modules from memory, so your desktop keeps working on the AMD iGPU
+throughout. The reboot at the end is what actually clears the old modules.
 
 ## If something goes wrong
 
