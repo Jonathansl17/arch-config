@@ -87,9 +87,10 @@ clipboard manager daemon.
 
 ## Local-only overrides (`~/.bashrc.local`)
 
-Anything machine-specific or sensitive — credentials, tokens, paths to files
-that only exist on one laptop — goes into `~/.bashrc.local`, which is
-**not** part of this repo. The versioned `bashrc` ends with:
+Anything machine-specific or sensitive — credentials, tokens, API keys,
+aliases that embed private hostnames, paths to files that only exist on one
+laptop — goes into `~/.bashrc.local`, which is **not** part of this repo.
+The versioned `bashrc` ends with:
 
 ```sh
 [ -f "$HOME/.bashrc.local" ] && . "$HOME/.bashrc.local"
@@ -97,6 +98,89 @@ that only exist on one laptop — goes into `~/.bashrc.local`, which is
 
 If `~/.bashrc.local` doesn't exist, the block is a no-op and everything
 still works. This is how secrets stay out of a public dotfiles repo.
+
+### Creating it on a fresh machine
+
+```sh
+touch ~/.bashrc.local
+chmod 600 ~/.bashrc.local      # readable only by you
+```
+
+The `chmod 600` matters — anything you put there is plaintext on disk, so at
+least lock it to your user.
+
+### What belongs in it
+
+Rule of thumb: **if you would be uncomfortable pasting the line into a public
+GitHub issue, it goes in `~/.bashrc.local`, not in the versioned `bashrc`.**
+
+Typical contents (one-per-line, as env vars or aliases):
+
+```sh
+# --- API keys / tokens ---
+export OPENAI_API_KEY="sk-..."
+export ANTHROPIC_API_KEY="sk-ant-..."
+export GITHUB_TOKEN="ghp_..."
+
+# --- SSH / RDP shortcuts that embed hostnames or users ---
+alias work-ssh='ssh myuser@internal.box.example.com'
+alias rdp-home='xfreerdp /u:me /v:10.0.0.5 /p:"$MY_RDP_PASS"'
+export MY_RDP_PASS='...'
+
+# --- Database connection strings ---
+export DATABASE_URL='postgres://user:pass@host:5432/db'
+
+# --- Per-machine paths ---
+export ANDROID_SDK_ROOT="$HOME/Android/Sdk"
+export JAVA_HOME="/usr/lib/jvm/java-21-openjdk"
+```
+
+After editing, reload with `source ~/.bashrc` (which re-sources
+`~/.bashrc.local`) or just open a new terminal.
+
+### Sanity check before committing to this repo
+
+Before `git push` on `arch-config`, make sure nothing private slipped into
+`bash/bashrc`:
+
+```sh
+grep -nE 'sk-|ghp_|AKIA|password=|token=|@[0-9.]+' bash/bashrc
+```
+
+Expected output: nothing. Anything that matches should be moved to
+`~/.bashrc.local`.
+
+## Optional extras
+
+### NVIDIA driver (hybrid AMD + NVIDIA laptops)
+
+This repo ships an **optional, idempotent** installer at
+`nvidia/install-nvidia.sh` for the exact NVIDIA setup I run on an ASUS
+hybrid laptop (AMD iGPU handles the desktop, NVIDIA dGPU wakes only for
+CUDA/NVENC). It is **not** called by `install.sh` — run it manually when
+you need it.
+
+```sh
+./nvidia/install-nvidia.sh --check    # preflight + state probe, no changes
+./nvidia/install-nvidia.sh            # idempotent install/repair
+./nvidia/install-nvidia.sh --force    # re-run every phase, skip early-exit
+```
+
+What it does (only runs the phases that aren't already in the desired state):
+
+- Installs `linux-headers`, `dkms`, `linux-firmware-nvidia`,
+  `nvidia-open-dkms`, `nvidia-utils`
+- Removes `xf86-video-nouveau` and `vulkan-nouveau` userspace
+- Cleans up orphan files left by legacy `.run` installs
+- Writes `/etc/modprobe.d/blacklist-nouveau.conf` so the nouveau kernel
+  module doesn't fight the proprietary driver
+- Regenerates the initramfs via `mkinitcpio -P` only if the blacklist
+  actually changed
+
+See `nvidia/README.md` for the full phase list, preflight checks, and
+rollback notes. Logs go to `nvidia/logs/` (gitignored).
+
+If you don't have an NVIDIA GPU, ignore this directory.
 
 ## Assumptions
 
@@ -133,8 +217,17 @@ arch-config/
 │   └── sxhkdrc
 ├── xinit/
 │   └── xinitrc
-└── templates/
-    └── template.xopp    # default template for new .xopp files (used by xournalpp() in bashrc)
+├── templates/
+│   └── template.xopp    # default template for new .xopp files (used by xournalpp() in bashrc)
+├── slock/
+│   └── config.h         # all-black lockscreen build (compiled from source by install.sh)
+├── sysctl/
+│   └── 99-swappiness.conf
+├── wifi/
+│   └── wifi.sh          # interactive nmcli helper
+└── nvidia/              # OPTIONAL: idempotent NVIDIA driver installer, not run by install.sh
+    ├── install-nvidia.sh
+    └── README.md
 ```
 
 ## License
