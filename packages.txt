@@ -60,6 +60,9 @@ dmenu
 alacritty
 rxvt-unicode
 
+# --- Fonts ---
+ttf-jetbrains-mono
+
 # --- File managers and utilities ---
 thunar
 thunar-archive-plugin
@@ -109,3 +112,7 @@ luajit
 # --- Power / hardware monitoring ---
 power-profiles-daemon
 smartmontools
+
+# --- Fun / eye candy ---
+cmatrix
+nyancat
