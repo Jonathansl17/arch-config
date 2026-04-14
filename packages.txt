@@ -108,6 +108,7 @@ nano
 vim
 zip
 luajit
+pacman-contrib
 
 # --- Power / hardware monitoring ---
 power-profiles-daemon

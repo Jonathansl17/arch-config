@@ -18,8 +18,9 @@ login goes straight from TTY1 into X via `.bash_profile` → `startx` →
   intellij-idea-ultimate-edition, postman-bin, pgadmin4-desktop-bin, ngrok,
   zoom, android-sdk-cmdline-tools-latest. `yay` is bootstrapped from source
   automatically if it's missing.
-- **5 systemd services enabled** (`services.txt`): NetworkManager,
-  bluetooth, docker, sshd, ufw.
+- **4 systemd services enabled** (`services.txt`): NetworkManager,
+  bluetooth, sshd, ufw. (Docker is installed but not enabled at boot —
+  start it manually with `sudo systemctl start docker` when needed.)
 - **6 config files** copied into `~` / `~/.config`:
   `bspwm/bspwmrc`, `sxhkd/sxhkdrc`, `alacritty/alacritty.toml`, `bash/bashrc`,
   `bash/bash_profile`, `xinit/xinitrc`.

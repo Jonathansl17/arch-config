@@ -5,6 +5,5 @@
 
 NetworkManager.service
 bluetooth.service
-docker.service
 sshd.service
 ufw.service
