@@ -8,11 +8,21 @@ NC='\033[0m'
 
 echo -e "${CYAN}=== WiFi Manager ===${NC}"
 echo ""
+
+current=$(nmcli -t -f NAME,TYPE connection show --active | awk -F: '$2 ~ /wireless/ {print $1; exit}')
+if [[ -n "$current" ]]; then
+  echo -e "  Status: ${GREEN}Connected${NC} → ${GREEN}$current${NC}"
+else
+  echo -e "  Status: ${YELLOW}Disconnected${NC}"
+fi
+
+echo ""
 echo "  1) Connect to a new network"
 echo "  2) Reconnect to a saved network"
 echo "  3) Disconnect current network"
+echo "  4) Delete a saved connection"
 echo ""
-read -rp "Choose an option [1/2/3]: " option
+read -rp "Choose an option [1/2/3/4]: " option
 
 case "$option" in
   1)
@@ -160,6 +170,46 @@ case "$option" in
       echo -e "${GREEN}Disconnected from $active.${NC}"
     else
       echo -e "${RED}Failed to disconnect from $active.${NC}"
+      exit 1
+    fi
+    ;;
+
+  4)
+    echo ""
+    echo -e "${YELLOW}Saved WiFi connections:${NC}"
+    echo ""
+    mapfile -t saved < <(nmcli -t -f NAME,TYPE connection show | grep ':.*wireless' | cut -d: -f1)
+
+    if [[ ${#saved[@]} -eq 0 ]]; then
+      echo -e "${RED}No saved WiFi connections found.${NC}"
+      exit 1
+    fi
+
+    for i in "${!saved[@]}"; do
+      printf "  %d) %s\n" $((i+1)) "${saved[$i]}"
+    done
+
+    echo ""
+    read -rp "Select a connection to delete [1-${#saved[@]}]: " del_choice
+
+    if [[ -z "$del_choice" ]] || [[ "$del_choice" -lt 1 ]] || [[ "$del_choice" -gt ${#saved[@]} ]]; then
+      echo -e "${RED}Invalid selection.${NC}"
+      exit 1
+    fi
+
+    target="${saved[$((del_choice-1))]}"
+
+    echo ""
+    read -rp "Are you sure you want to delete '$target'? [y/N]: " confirm
+    if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
+      echo -e "${YELLOW}Cancelled.${NC}"
+      exit 0
+    fi
+
+    if nmcli connection delete "$target"; then
+      echo -e "${GREEN}Connection '$target' deleted.${NC}"
+    else
+      echo -e "${RED}Failed to delete '$target'.${NC}"
       exit 1
     fi
     ;;
