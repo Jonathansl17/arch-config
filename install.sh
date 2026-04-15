@@ -129,7 +129,6 @@ fi
 sudo chown "$USER:$USER" /lemonbar
 cp "$REPO_DIR/lemonbar/bar.sh" \
    "$REPO_DIR/lemonbar/start.sh" \
-   "$REPO_DIR/lemonbar/toggle.sh" \
    "$REPO_DIR/lemonbar/watcher.sh" /lemonbar/
 chmod +x /lemonbar/*.sh
 

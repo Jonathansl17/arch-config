@@ -202,7 +202,3 @@ XF86AudioLowerVolume
 XF86AudioMute
     wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
 
-# LEMONBAR-TOGGLE
-super + minus
-    /lemonbar/toggle.sh
-

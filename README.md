@@ -27,7 +27,7 @@ login goes straight from TTY1 into X via `.bash_profile` → `startx` →
   AUR with `CC=gcc` (clang rejects `-march=x86-64`). Scripts are deployed
   to `/lemonbar/` and launched from `bspwmrc` via `watcher.sh`, which hides
   the bar while any window is fullscreen and brings it back when fullscreen
-  ends. `super + minus` toggles the bar manually.
+  ends.
 - **4 systemd services enabled** (`services.txt`): NetworkManager,
   bluetooth, sshd, ufw. (Docker is installed but not enabled at boot —
   start it manually with `sudo systemctl start docker` when needed.)
@@ -78,7 +78,6 @@ config files. Any config file that exists and differs is backed up to
 | `super + b` | Brave |
 | `super + e` | Thunar |
 | `super + l` | i3lock (black screen, PAM password) |
-| `super + minus` | Toggle lemonbar (hide/show manually) |
 | `Print` | Area screenshot → clipboard (maim + slop + xclip) |
 | `XF86Audio*` | Volume up / down / mute via wpctl |
 
@@ -113,13 +112,6 @@ node_transfer desktop_focus` and syncs the bar on every event:
 This means fullscreening a window (`ctrl + .`) hides the bar automatically
 and bringing it back is automatic too.
 
-### Manual toggle
-
-`super + minus` runs `/lemonbar/toggle.sh`. It flips the bar off / on and
-writes/removes the marker `/tmp/lemonbar-hidden`. While the marker exists the
-watcher respects the user's choice and does **not** re-spawn the bar on the
-next bspwm event; the next manual toggle (or a fullscreen cycle) clears it.
-
 ### Why `lemonbar-xft-git` is handled outside `aur.txt`
 
 The PKGBUILD ships `CFLAGS` that include `-march=x86-64`, which the default
@@ -131,7 +123,6 @@ The PKGBUILD ships `CFLAGS` that include `-march=x86-64`, which the default
 
 - `/lemonbar/bar.sh` — feeder loop, pipes into `lemonbar`
 - `/lemonbar/start.sh` — (re)launch (kills previous, sets `top_padding`, starts bar)
-- `/lemonbar/toggle.sh` — manual show/hide with marker file
 - `/lemonbar/watcher.sh` — bspwm event listener that drives auto-hide
 
 ## Screenshot setup
@@ -292,7 +283,6 @@ arch-config/
 ├── lemonbar/            # custom status bar (date | CPU | WiFi | BAT)
 │   ├── bar.sh           # feeder piped into lemonbar
 │   ├── start.sh         # (re)launch the bar
-│   ├── toggle.sh        # super+minus manual toggle
 │   └── watcher.sh       # bspwm event listener, hides bar on fullscreen
 └── nvidia/              # OPTIONAL: idempotent NVIDIA driver installer, not run by install.sh
     ├── install-nvidia.sh

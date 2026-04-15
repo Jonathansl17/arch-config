@@ -26,17 +26,6 @@ bspc config focused_border_color "#FFFFFF"
 # Terminals launched via the split keybinds
 bspc rule -a split_term state=tiled layer=normal
 
-# Main apps: tiled + follow + focus
-bspc rule -a Code            follow=on focus=on
-bspc rule -a code-oss        follow=on focus=on
-bspc rule -a Code-oss        follow=on focus=on
-bspc rule -a jetbrains-idea  follow=on focus=on
-bspc rule -a jetbrains-idea-ce follow=on focus=on
-bspc rule -a pgAdmin4        follow=on focus=on
-bspc rule -a Postman         follow=on focus=on
-bspc rule -a Thunar          follow=on focus=on
-bspc rule -a Brave-browser   follow=on focus=on
-
 # LEMONBAR-START
 /lemonbar/watcher.sh &
 # LEMONBAR-END
