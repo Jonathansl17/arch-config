@@ -123,11 +123,14 @@ prime_wifi  # cache hit, no bloquea en nmcli
 
 # now = epoch real (builtin bash, sin fork). Evita derivas frente a un contador.
 printf -v now '%(%s)T' -1
-next_cpu=$now; next_ram=$now; next_temp=$now
+next_ram=$now; next_temp=$now
 next_bat=$now; next_date=$now
 # Diferimos los reads caros para que el primer frame salga ya.
 next_ghz=$((  now + int_ghz  ))
 next_wifi=$(( now + int_wifi ))
+# Diferimos el primer %CPU: necesita un delta real de /proc/stat contra el
+# prime para no dar un valor basura (p.ej. 100% por 1 jiffy de ruido).
+next_cpu=$((  now + int_cpu  ))
 first_run=1
 
 while :; do
