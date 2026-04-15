@@ -39,8 +39,7 @@ fi
 pkill -f '/lemonbar/watcher.sh' 2>/dev/null || true
 pkill -f '/lemonbar/bar.sh' 2>/dev/null || true
 pkill -x lemonbar 2>/dev/null || true
-rm -f /tmp/lemonbar-hidden /tmp/lemonbar.lock \
-      /tmp/lemonbar-watcher.lock /tmp/lemonbar-start.lock
+rm -f /tmp/lemonbar-watcher.lock
 sleep 0.3
 setsid -f /lemonbar/watcher.sh </dev/null >/dev/null 2>&1
 

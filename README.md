@@ -83,12 +83,20 @@ config files. Any config file that exists and differs is backed up to
 
 ## Status bar (lemonbar)
 
-A minimal top bar rendered by `lemonbar-xft-git`, fed by a 1-second loop in
-`lemonbar/bar.sh`. Content, centered on a single line:
+A minimal top bar rendered by `lemonbar-xft-git`, fed by an **event-driven**
+loop in `lemonbar/bar.sh`: each metric has its own refresh interval (CPU% 2 s,
+GHz 5 s, RAM 3 s, TEMP 5 s, WIFI 15 s, BAT 30 s, DATE 60 s) and the loop only
+wakes up when the nearest deadline is due. Content, centered on a single line:
 
 ```
-Tue 14 Apr 09:52:10 PM  |  CPU 48.2°C  |  WIFI MyNet  |  BAT 87% Discharging
+Tue 14 Apr 09:52 PM  |  CPU 3% 0.9GHz 48°C  |  RAM 4.2/30.6GB  |  WIFI MyNet  |  BAT 87% Discharging
 ```
+
+All metrics come from `/proc` and `/sys` via bash builtins (no forks in the
+hot path); the only external calls are `nmcli` (WIFI, 15 s) and `bspc` on
+fullscreen events from the watcher. SSID is cached to `/tmp/lemonbar-wifi`
+so the first frame after show is instant — real NetworkManager query is
+deferred to the next 15 s tick.
 
 Font: `monospace:size=12` (matches the alacritty size), 22 px tall. Colors:
 white text on translucent black background.

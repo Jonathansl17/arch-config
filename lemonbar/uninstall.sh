@@ -6,8 +6,7 @@
 pkill -f '/lemonbar/watcher.sh' 2>/dev/null
 pkill -f '/lemonbar/bar.sh' 2>/dev/null
 pkill -x lemonbar 2>/dev/null
-rm -f /tmp/lemonbar-hidden /tmp/lemonbar.lock \
-      /tmp/lemonbar-watcher.lock /tmp/lemonbar-start.lock
+rm -f /tmp/lemonbar-watcher.lock /tmp/lemonbar-wifi
 
 # 2) bspwmrc: quitar bloque
 BSPWMRC="$HOME/.config/bspwm/bspwmrc"
