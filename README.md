@@ -14,10 +14,14 @@ login goes straight from TTY1 into X via `.bash_profile` → `startx` →
   Bluetooth, bspwm/sxhkd/dmenu/i3lock, alacritty, Thunar, screenshot tools,
   common desktop apps, and a full dev toolchain (git, docker, postgres,
   JDK 21, Android tools, etc.).
-- **8 AUR packages** (`aur.txt`): brave-bin, visual-studio-code-bin,
-  intellij-idea-ultimate-edition, postman-bin, pgadmin4-desktop-bin, ngrok,
-  zoom, android-sdk-cmdline-tools-latest. `yay` is bootstrapped from source
-  automatically if it's missing.
+- **9 AUR packages** (`aur.txt`): brave-bin, visual-studio-code-bin,
+  intellij-idea-ultimate-edition, postman-bin, pgadmin4-desktop-bin,
+  pnpm-bin, ngrok, zoom, android-sdk-cmdline-tools-latest. `yay` is
+  bootstrapped from source automatically if it's missing.
+- **Node.js toolchain**: `nodejs` from the official repos, `pnpm-bin` from
+  AUR, and **nvm** cloned into `~/.nvm` by `install.sh` (pinned via
+  `NVM_VERSION`). The nvm loader lives in the versioned `bash/bashrc`, so
+  `nvm` / `node` / `pnpm` work out of the box after install.
 - **Custom lemonbar status bar** (`lemonbar/`): a minimal top bar showing
   date, CPU temp, Wi-Fi SSID and battery. `lemonbar-xft-git` is built from
   AUR with `CC=gcc` (clang rejects `-march=x86-64`). Scripts are deployed

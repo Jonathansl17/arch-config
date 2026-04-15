@@ -118,6 +118,13 @@ t() {
     sensors k10temp-pci-00c3 | awk '/^Tctl:/ {print "CPU: " $2}'
 }
 
+# === nvm (Node Version Manager) ===
+# nvm is cloned to ~/.nvm by install.sh. If the directory isn't there,
+# the two lines below are no-ops and the shell starts normally.
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+
 # === local overrides (NOT VERSIONED) ===
 # ~/.bashrc.local is for aliases/variables with credentials, tokens
 # or anything machine-specific that must not travel with the repo.

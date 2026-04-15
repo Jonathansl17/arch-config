@@ -143,7 +143,18 @@ fi
 cp "$REPO_DIR/slock/config.h" "$SLOCK_BUILD/config.h"
 ( cd "$SLOCK_BUILD" && sudo make clean install )
 
-# --- 4d. sysctl tweaks ---
+# --- 4d. nvm (Node Version Manager) ---
+# Cloned into ~/.nvm; the loader is already in bash/bashrc. We pin a tag so
+# the install is reproducible; bump NVM_VERSION when a new release is out.
+NVM_VERSION="v0.40.1"
+if [[ ! -d "$HOME/.nvm" ]]; then
+    say "Cloning nvm $NVM_VERSION into ~/.nvm"
+    git clone --depth=1 --branch "$NVM_VERSION" https://github.com/nvm-sh/nvm.git "$HOME/.nvm"
+else
+    say "nvm already present at ~/.nvm (skipping)"
+fi
+
+# --- 4e. sysctl tweaks ---
 say "Installing sysctl configs"
 sudo cp "$REPO_DIR/sysctl/99-swappiness.conf" /etc/sysctl.d/99-swappiness.conf
 sudo sysctl --system >/dev/null 2>&1

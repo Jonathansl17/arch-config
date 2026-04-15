@@ -13,6 +13,7 @@ brave-bin
 intellij-idea-ultimate-edition
 ngrok
 pgadmin4-desktop-bin
+pnpm-bin
 postman-bin
 python312
 visual-studio-code-bin

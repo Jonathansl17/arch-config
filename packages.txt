@@ -94,6 +94,7 @@ cmake
 docker
 docker-compose
 jdk21-openjdk
+nodejs
 postgresql
 python-pyqt5
 rust
