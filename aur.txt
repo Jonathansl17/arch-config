@@ -4,6 +4,9 @@
 #
 # yay and yay-debug are intentionally excluded: yay is bootstrapped in
 # install.sh before this file is read, and yay-debug is a build byproduct.
+#
+# lemonbar-xft-git is intentionally NOT listed here: it needs CC=gcc to build
+# (clang rejects -march=x86-64). install.sh handles it in its own section.
 
 android-sdk-cmdline-tools-latest
 brave-bin

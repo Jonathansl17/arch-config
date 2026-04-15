@@ -10,8 +10,9 @@ echo -e "${CYAN}=== WiFi Manager ===${NC}"
 echo ""
 echo "  1) Connect to a new network"
 echo "  2) Reconnect to a saved network"
+echo "  3) Disconnect current network"
 echo ""
-read -rp "Choose an option [1/2]: " option
+read -rp "Choose an option [1/2/3]: " option
 
 case "$option" in
   1)
@@ -144,6 +145,22 @@ case "$option" in
       echo -e "${GREEN}Connected to $chosen successfully!${NC}"
     else
       echo -e "${RED}Failed to connect to $chosen.${NC}"
+    fi
+    ;;
+
+  3)
+    echo ""
+    active=$(nmcli -t -f NAME,TYPE connection show --active | awk -F: '$2 ~ /wireless/ {print $1; exit}')
+    if [[ -z "$active" ]]; then
+      echo -e "${YELLOW}No hay ninguna red WiFi conectada.${NC}"
+      exit 0
+    fi
+    echo -e "${YELLOW}Disconnecting from $active...${NC}"
+    if nmcli connection down "$active"; then
+      echo -e "${GREEN}Disconnected from $active.${NC}"
+    else
+      echo -e "${RED}Failed to disconnect from $active.${NC}"
+      exit 1
     fi
     ;;
 

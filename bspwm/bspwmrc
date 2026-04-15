@@ -36,3 +36,7 @@ bspc rule -a pgAdmin4        follow=on focus=on
 bspc rule -a Postman         follow=on focus=on
 bspc rule -a Thunar          follow=on focus=on
 bspc rule -a Brave-browser   follow=on focus=on
+
+# LEMONBAR-START
+/lemonbar/watcher.sh &
+# LEMONBAR-END

@@ -116,7 +116,24 @@ done
 chmod +x "$HOME/.config/bspwm/bspwmrc" 2>/dev/null || true
 chmod +x "$HOME/wifi/wifi.sh" 2>/dev/null || true
 
-# --- 4b. Build slock from source (custom config: all-black lock screen) ---
+# --- 4b. Install lemonbar + /lemonbar scripts (custom status bar) ---
+say "Installing lemonbar-xft-git (forces CC=gcc; clang fails with -march)"
+if ! pacman -Q lemonbar-xft-git >/dev/null 2>&1; then
+    CC=gcc yay -S --needed --noconfirm lemonbar-xft-git
+fi
+
+say "Deploying /lemonbar scripts"
+if [[ ! -d /lemonbar ]]; then
+    sudo mkdir -p /lemonbar
+fi
+sudo chown "$USER:$USER" /lemonbar
+cp "$REPO_DIR/lemonbar/bar.sh" \
+   "$REPO_DIR/lemonbar/start.sh" \
+   "$REPO_DIR/lemonbar/toggle.sh" \
+   "$REPO_DIR/lemonbar/watcher.sh" /lemonbar/
+chmod +x /lemonbar/*.sh
+
+# --- 4c. Build slock from source (custom config: all-black lock screen) ---
 say "Building slock from source"
 SLOCK_BUILD="$HOME/builds/slock"
 if [[ ! -d "$SLOCK_BUILD" ]]; then
@@ -126,7 +143,7 @@ fi
 cp "$REPO_DIR/slock/config.h" "$SLOCK_BUILD/config.h"
 ( cd "$SLOCK_BUILD" && sudo make clean install )
 
-# --- 4c. sysctl tweaks ---
+# --- 4d. sysctl tweaks ---
 say "Installing sysctl configs"
 sudo cp "$REPO_DIR/sysctl/99-swappiness.conf" /etc/sysctl.d/99-swappiness.conf
 sudo sysctl --system >/dev/null 2>&1
