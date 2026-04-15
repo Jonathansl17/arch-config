@@ -90,7 +90,11 @@ next_cpu=0; next_ram=0; next_temp=0; next_wifi=0; next_bat=0; next_date=0
 
 read_cpu  # prime counters (primera llamada basura, se sobrescribe enseguida)
 
-now=0
+# now = epoch real (builtin bash, sin fork). Evita derivas frente a un contador.
+printf -v now '%(%s)T' -1
+next_cpu=$now; next_ram=$now; next_temp=$now
+next_wifi=$now; next_bat=$now; next_date=$now
+
 while :; do
     (( now >= next_cpu  )) && { read_cpu;  next_cpu=$((  now + int_cpu  )); }
     (( now >= next_ram  )) && { read_ram;  next_ram=$((  now + int_ram  )); }
@@ -109,8 +113,8 @@ while :; do
     (( next_bat  < nxt )) && nxt=$next_bat
     (( next_date < nxt )) && nxt=$next_date
 
-    delay=$((nxt - now))
-    (( delay < 1 )) && delay=1
-    sleep "$delay"
-    now=$nxt
+    printf -v now '%(%s)T' -1
+    delay=$(( nxt - now ))
+    (( delay > 0 )) && sleep "$delay"
+    printf -v now '%(%s)T' -1
 done | lemonbar -p -d -g x22 -B "#CC000000" -F "#FFFFFFFF" -f "monospace:size=12"
