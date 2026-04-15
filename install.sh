@@ -132,6 +132,18 @@ cp "$REPO_DIR/lemonbar/bar.sh" \
    "$REPO_DIR/lemonbar/watcher.sh" /lemonbar/
 chmod +x /lemonbar/*.sh
 
+# Si ya hay un watcher/barra corriendo (re-run sobre sistema vivo), los
+# reinicio para que tomen los scripts nuevos sin necesidad de reboot.
+if pgrep -f '/lemonbar/watcher.sh' >/dev/null; then
+    say "Restarting running watcher to pick up updated scripts"
+    pkill -f '/lemonbar/watcher.sh' 2>/dev/null || true
+    pkill -f '/lemonbar/bar.sh' 2>/dev/null || true
+    pkill -x lemonbar 2>/dev/null || true
+    rm -f /tmp/lemonbar-watcher.lock
+    sleep 0.3
+    setsid -f /lemonbar/watcher.sh </dev/null >/dev/null 2>&1
+fi
+
 # --- 4c. Build slock from source (custom config: all-black lock screen) ---
 say "Building slock from source"
 SLOCK_BUILD="$HOME/builds/slock"

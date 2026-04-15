@@ -128,6 +128,7 @@ next_bat=$now; next_date=$now
 # Diferimos los reads caros para que el primer frame salga ya.
 next_ghz=$((  now + int_ghz  ))
 next_wifi=$(( now + int_wifi ))
+first_run=1
 
 while :; do
     (( now >= next_cpu  )) && { read_cpu;  next_cpu=$((  now + int_cpu  )); }
@@ -140,6 +141,16 @@ while :; do
 
     printf '%%{c}%s  |  CPU %s%% %sGHz %s  |  RAM %sGB  |  WIFI %s  |  BAT %s\n' \
         "$D" "$cpu_usage" "$cpu_ghz" "$T" "$R" "$W" "$B"
+
+    # Tras el primer frame: calculamos GHz y reimprimimos sin esperar next_ghz.
+    # Así el usuario ve los GHz ~60 ms después de abrir la barra, no 5 s.
+    if (( first_run )); then
+        first_run=0
+        read_ghz
+        next_ghz=$(( now + int_ghz ))
+        printf '%%{c}%s  |  CPU %s%% %sGHz %s  |  RAM %sGB  |  WIFI %s  |  BAT %s\n' \
+            "$D" "$cpu_usage" "$cpu_ghz" "$T" "$R" "$W" "$B"
+    fi
 
     nxt=$next_cpu
     (( next_ghz  < nxt )) && nxt=$next_ghz
