@@ -26,7 +26,7 @@ alias u='sudo pacman -Syu'
 alias s='git add . && MSG=$(git diff --cached | claude -p "Generate a concise commit message for these changes. Respond ONLY with the message.") && git commit -m "$MSG" && git push'
 alias b='echo "$(cat /sys/class/power_supply/BAT1/capacity)% — $(cat /sys/class/power_supply/BAT1/status)"'
 alias d='date'
-alias db='d && b'
+alias x='d && b && t'
 
 export PATH="$HOME/.local/bin:$PATH"
 
@@ -111,6 +111,11 @@ xournalpp() {
 }
 libreoffice() {
     setsid -f /usr/bin/libreoffice "$@" >/dev/null 2>&1
+}
+
+# === CPU temp ===
+t() {
+    sensors k10temp-pci-00c3 | awk '/^Tctl:/ {print "CPU: " $2}'
 }
 
 # === local overrides (NOT VERSIONED) ===
