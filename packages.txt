@@ -50,6 +50,7 @@ mesa-utils
 bspwm
 sxhkd
 dmenu
+xss-lock
 # slock is compiled from source (see install.sh step 4b)
 
 # --- Terminals ---
