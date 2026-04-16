@@ -7,13 +7,19 @@ xsetroot -cursor_name left_ptr
 # Monitors: enables any connected HDMI-* to the right of eDP.
 hdmi=$(xrandr --query | awk '/^HDMI-[0-9-]+ connected/ {print $1; exit}')
 if [ -n "$hdmi" ]; then
-    # Max refresh rate on external monitor
-    max_rate=$(xrandr | sed -n "/^$hdmi connected/,/^[^ ]/{/^ /p}" \
-        | head -1 | grep -oP '[0-9]+\.[0-9]+' \
+    # Preferred mode + max refresh rate on the external monitor. The first
+    # mode line in xrandr is the preferred resolution; we pick the highest
+    # refresh rate available for it. --mode+--rate must be explicit because
+    # --auto alone keeps the "+" preferred rate and ignores --rate on some
+    # drivers.
+    mode_line=$(xrandr | sed -n "/^$hdmi connected/,/^[^ ]/{/^ /p}" | head -1)
+    hdmi_mode=$(echo "$mode_line" | awk '{print $1}')
+    hdmi_rate=$(echo "$mode_line" | grep -oP '[0-9]+\.[0-9]+' \
         | sort -t. -k1,1nr -k2,2nr | head -1)
     xrandr --output eDP --primary --auto \
-           --output "$hdmi" --auto --right-of eDP \
-           ${max_rate:+--rate "$max_rate"}
+           --output "$hdmi" --right-of eDP \
+           ${hdmi_mode:+--mode "$hdmi_mode"} \
+           ${hdmi_rate:+--rate "$hdmi_rate"}
     bspc monitor eDP     -d 1 2 3 4 5       # laptop: super+1..5
     bspc monitor "$hdmi" -d 6 7 8 9 10      # external: super+6..0
 else
