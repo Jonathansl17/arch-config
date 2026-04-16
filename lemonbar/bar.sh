@@ -30,19 +30,17 @@ read_cpu() {
     (( dt > 0 )) && cpu_usage=$(( (100 * (dt - di)) / dt ))
 }
 
-# GHz promedio desde /proc/cpuinfo. ~50 ms en 12 cores. Se llama cada int_ghz.
+# GHz real desde cpuinfo_avg_freq (CPPC HW feedback, no la freq "deseada").
 read_ghz() {
-    local sum=0 nc=0 mhz line
-    while IFS= read -r line; do
-        if [[ $line == "cpu MHz"* ]]; then
-            mhz=${line##*: }
-            mhz=${mhz%.*}
-            sum=$((sum + mhz))
-            ((nc++))
-        fi
-    done < /proc/cpuinfo
+    local sum=0 nc=0 freq
+    for f in /sys/devices/system/cpu/cpu*/cpufreq/cpuinfo_avg_freq; do
+        [[ -r $f ]] || continue
+        read -r freq < "$f"
+        sum=$((sum + freq))
+        ((nc++))
+    done
     if (( nc > 0 )); then
-        local avg=$((sum * 10 / nc / 1000))
+        local avg=$(( sum * 10 / nc / 1000000 ))
         cpu_ghz="$((avg / 10)).$((avg % 10))"
     fi
 }
@@ -118,7 +116,9 @@ read_date() {
 int_cpu=2; int_ghz=5; int_ram=3; int_temp=5; int_wifi=15; int_bat=30; int_date=60
 
 # Prime baseline de /proc/stat (sin el parse caro de cpuinfo).
-read_cpu
+# Solo establece prev_total/prev_idle; reseteamos cpu_usage para no
+# mostrar el promedio-desde-boot como si fuera el uso actual.
+read_cpu; cpu_usage="--"
 prime_wifi  # cache hit, no bloquea en nmcli
 
 # now = epoch real (builtin bash, sin fork). Evita derivas frente a un contador.
@@ -145,12 +145,11 @@ while :; do
     printf '%%{c}%s  |  CPU %s%% %sGHz %s  |  RAM %sGB  |  WIFI %s  |  BAT %s\n' \
         "$D" "$cpu_usage" "$cpu_ghz" "$T" "$R" "$W" "$B"
 
-    # Tras el primer frame: calculamos GHz y reimprimimos sin esperar next_ghz.
-    # Así el usuario ve los GHz ~60 ms después de abrir la barra, no 5 s.
+    # Primer frame: leer GHz inmediatamente para no mostrar "-.-" por 5s.
+    # Solo se ejecuta al login (la barra ya no se reinicia en cada fullscreen).
     if (( first_run )); then
         first_run=0
         read_ghz
-        next_ghz=$(( now + int_ghz ))
         printf '%%{c}%s  |  CPU %s%% %sGHz %s  |  RAM %sGB  |  WIFI %s  |  BAT %s\n' \
             "$D" "$cpu_usage" "$cpu_ghz" "$T" "$R" "$W" "$B"
     fi

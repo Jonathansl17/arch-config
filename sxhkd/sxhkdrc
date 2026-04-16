@@ -121,25 +121,25 @@ Print
 ########################
 
 super + 1
-    bspc desktop -f I
+    bspc desktop -f 1
 super + 2
-    bspc desktop -f II
+    bspc desktop -f 2
 super + 3
-    bspc desktop -f III
+    bspc desktop -f 3
 super + 4
-    bspc desktop -f IV
+    bspc desktop -f 4
 super + 5
-    bspc desktop -f V
+    bspc desktop -f 5
 super + 6
-    bspc desktop -f VI
+    bspc desktop -f 6
 super + 7
-    bspc desktop -f VII
+    bspc desktop -f 7
 super + 8
-    bspc desktop -f VIII
+    bspc desktop -f 8
 super + 9
-    bspc desktop -f IX
+    bspc desktop -f 9
 super + 0
-    bspc desktop -f X
+    bspc desktop -f 10
 
 
 ########################
@@ -147,25 +147,25 @@ super + 0
 ########################
 
 super + shift + 1
-    bspc node -d I --follow
+    bspc node -d 1 --follow
 super + shift + 2
-    bspc node -d II --follow
+    bspc node -d 2 --follow
 super + shift + 3
-    bspc node -d III --follow
+    bspc node -d 3 --follow
 super + shift + 4
-    bspc node -d IV --follow
+    bspc node -d 4 --follow
 super + shift + 5
-    bspc node -d V --follow
+    bspc node -d 5 --follow
 super + shift + 6
-    bspc node -d VI --follow
+    bspc node -d 6 --follow
 super + shift + 7
-    bspc node -d VII --follow
+    bspc node -d 7 --follow
 super + shift + 8
-    bspc node -d VIII --follow
+    bspc node -d 8 --follow
 super + shift + 9
-    bspc node -d IX --follow
+    bspc node -d 9 --follow
 super + shift + 0
-    bspc node -d X --follow
+    bspc node -d 10 --follow
 
 ########################
 # RESIZE WINDOWS (super + arrow, 50px step)

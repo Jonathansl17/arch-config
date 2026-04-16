@@ -13,10 +13,10 @@ if xrandr --query | grep -q "^HDMI-1-1 connected"; then
     xrandr --output eDP --primary --auto \
            --output HDMI-1-1 --auto --right-of eDP \
            ${max_rate:+--rate "$max_rate"}
-    bspc monitor eDP      -d I II III IV V       # laptop: super+1..5
-    bspc monitor HDMI-1-1 -d VI VII VIII IX X    # external: super+6..0 (0 = X)
+    bspc monitor eDP      -d 1 2 3 4 5       # laptop: super+1..5
+    bspc monitor HDMI-1-1 -d 6 7 8 9 10    # external: super+6..0
 else
-    bspc monitor -d I II III IV V VI VII VIII IX X  # no HDMI: all 10 on eDP
+    bspc monitor -d 1 2 3 4 5 6 7 8 9 10  # no HDMI: all 10 on eDP
 fi
 
 bspc config presel_feedback      false
