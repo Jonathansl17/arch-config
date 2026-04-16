@@ -131,20 +131,25 @@ if ! pacman -Q lemonbar-xft-git >/dev/null 2>&1; then
     CC=gcc yay -S --needed --noconfirm lemonbar-xft-git
 fi
 
-say "Deploying /lemonbar scripts"
+say "Building bspwm-desktops (direct socket, no bspc)"
+gcc -O2 -Wall -o "$REPO_DIR/lemonbar/bspwm-desktops" "$REPO_DIR/lemonbar/bspwm-desktops.c"
+
+say "Deploying /lemonbar scripts + binary"
 if [[ ! -d /lemonbar ]]; then
     sudo mkdir -p /lemonbar
 fi
 sudo chown "$USER:$USER" /lemonbar
 cp "$REPO_DIR/lemonbar/bar.sh" \
    "$REPO_DIR/lemonbar/start.sh" \
-   "$REPO_DIR/lemonbar/watcher.sh" /lemonbar/
-chmod +x /lemonbar/*.sh
+   "$REPO_DIR/lemonbar/watcher.sh" \
+   "$REPO_DIR/lemonbar/bspwm-desktops" /lemonbar/
+chmod +x /lemonbar/*.sh /lemonbar/bspwm-desktops
 
 # Reinicio limpio de la barra para que tome los scripts nuevos.
 say "Restarting lemonbar"
 pkill -f '/lemonbar/watcher.sh' 2>/dev/null || true
 pkill -f '/lemonbar/bar.sh' 2>/dev/null || true
+pkill -x bspwm-desktops 2>/dev/null || true
 pkill -x lemonbar 2>/dev/null || true
 rm -f /tmp/lemonbar-watcher.lock
 sleep 0.3

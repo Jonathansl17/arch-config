@@ -5,23 +5,6 @@
 D=""; B="no-bat"; T="--"; W="disconnected"; R="--"
 cpu_usage="--"; cpu_ghz="-.-"; DESKTOPS=""
 
-# Parsea una línea de bspc subscribe report → DESKTOPS formateado.
-# Formato: WMeDP:O1:f2:o3:... (O/F/U = focused, o/f/u = no focused)
-parse_report() {
-    local report="$1" out="" IFS=':'
-    for token in $report; do
-        case $token in
-            W*|L*|T*|G*) continue ;;  # skip monitor/layout/state tokens
-        esac
-        local flag=${token:0:1} name=${token:1}
-        case $flag in
-            O|F|U) out+="%{F#FF000000}%{B#FFFFFFFF} $name %{B-}%{F-}" ;;
-            o|f|u) out+="%{F#88FFFFFF} $name %{F-}" ;;
-        esac
-    done
-    DESKTOPS="$out"
-}
-
 HWMON_TEMP=/sys/class/hwmon/hwmon6/temp1_input   # k10temp Tctl
 BAT_CAP=/sys/class/power_supply/BAT1/capacity
 BAT_STAT=/sys/class/power_supply/BAT1/status
@@ -148,43 +131,40 @@ next_wifi=$(( now + int_wifi ))
 # Diferimos el primer %CPU: necesita un delta real de /proc/stat contra el
 # prime para no dar un valor basura (p.ej. 100% por 1 jiffy de ruido).
 next_cpu=$((  now + int_cpu  ))
-first_run=1
 
 render() {
     printf '%%{l} %s %%{c}%s  |  CPU %s%% %sGHz %s  |  RAM %sGB  |  WIFI %s  |  BAT %s\n' \
         "$DESKTOPS" "$D" "$cpu_usage" "$cpu_ghz" "$T" "$R" "$W" "$B"
 }
 
-# Dos productores → un pipe (fd 3).
-# bspc subscribe report: estado de escritorios en cada evento bspwm.
-# Ticker 1s: chequeo de métricas + report de fallback por si subscribe pierde un evento.
-exec 3< <(
-    bspc subscribe report &
-    while :; do sleep 1; bspc subscribe report -c 1; done
-)
-trap "kill 0" EXIT
+# FIFO: dos productores independientes, escrituras atómicas (< PIPE_BUF).
+BAR_FIFO=/tmp/lemonbar-fifo.$$
+mkfifo "$BAR_FIFO"
+exec 3<>"$BAR_FIFO"
+trap 'kill 0; rm -f "$BAR_FIFO"' EXIT
 
-# Prime inicial.
-parse_report "$(bspc subscribe report -c 1)"
-render
+# Productor 1: bspwm-desktops conecta directo al socket de bspwm (sin bspc).
+# Cada línea es el string formateado de desktops para lemonbar.
+/lemonbar/bspwm-desktops > "$BAR_FIFO" &
+# Productor 2: tick cada 1s para métricas.
+(while :; do sleep 1; printf 'T\n'; done) > "$BAR_FIFO" &
 
-if (( first_run )); then
-    first_run=0
+{
     read_ghz
     render
-fi
 
-while read -r ev <&3; do
-    # Si es un report de bspc (empieza con W), parsear escritorios.
-    [[ $ev == W* ]] && parse_report "$ev"
+    while read -r ev <&3; do
+        # Líneas del binario C = desktops formateados. "T" = tick de métricas.
+        [[ $ev != T ]] && DESKTOPS="$ev"
 
-    printf -v now '%(%s)T' -1
-    (( now >= next_cpu  )) && { read_cpu;  next_cpu=$((  now + int_cpu  )); }
-    (( now >= next_ghz  )) && { read_ghz;  next_ghz=$((  now + int_ghz  )); }
-    (( now >= next_ram  )) && { read_ram;  next_ram=$((  now + int_ram  )); }
-    (( now >= next_temp )) && { read_temp; next_temp=$(( now + int_temp )); }
-    (( now >= next_wifi )) && { read_wifi; next_wifi=$(( now + int_wifi )); }
-    (( now >= next_bat  )) && { read_bat;  next_bat=$((  now + int_bat  )); }
-    (( now >= next_date )) && { read_date; next_date=$(( now + int_date )); }
-    render
-done | lemonbar -p -d -g x22 -B "#CC000000" -F "#FFFFFFFF" -f "monospace:size=12"
+        printf -v now '%(%s)T' -1
+        (( now >= next_cpu  )) && { read_cpu;  next_cpu=$((  now + int_cpu  )); }
+        (( now >= next_ghz  )) && { read_ghz;  next_ghz=$((  now + int_ghz  )); }
+        (( now >= next_ram  )) && { read_ram;  next_ram=$((  now + int_ram  )); }
+        (( now >= next_temp )) && { read_temp; next_temp=$(( now + int_temp )); }
+        (( now >= next_wifi )) && { read_wifi; next_wifi=$(( now + int_wifi )); }
+        (( now >= next_bat  )) && { read_bat;  next_bat=$((  now + int_bat  )); }
+        (( now >= next_date )) && { read_date; next_date=$(( now + int_date )); }
+        render
+    done
+} | lemonbar -p -d -g x22 -B "#CC000000" -F "#FFFFFFFF" -f "monospace:size=12"
