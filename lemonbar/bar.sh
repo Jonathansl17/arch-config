@@ -156,11 +156,11 @@ render() {
 }
 
 # Dos productores → un pipe (fd 3).
-# bspc subscribe report: estado completo de escritorios en cada evento (sin queries).
-# Ticker 1s: chequeo de métricas.
+# bspc subscribe report: estado de escritorios en cada evento bspwm.
+# Ticker 1s: chequeo de métricas + report de fallback por si subscribe pierde un evento.
 exec 3< <(
     bspc subscribe report &
-    while :; do sleep 1; echo T; done
+    while :; do sleep 1; bspc subscribe report -c 1; done
 )
 trap "kill 0" EXIT
 
