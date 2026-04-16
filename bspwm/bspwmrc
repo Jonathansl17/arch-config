@@ -4,17 +4,18 @@ pgrep -x sxhkd > /dev/null || sxhkd &
 
 xsetroot -cursor_name left_ptr
 
-# Monitors: enables HDMI-1-1 to the right of eDP when connected.
-if xrandr --query | grep -q "^HDMI-1-1 connected"; then
+# Monitors: enables any connected HDMI-* to the right of eDP.
+hdmi=$(xrandr --query | awk '/^HDMI-[0-9-]+ connected/ {print $1; exit}')
+if [ -n "$hdmi" ]; then
     # Max refresh rate on external monitor
-    max_rate=$(xrandr | sed -n '/^HDMI-1-1 connected/,/^[^ ]/{/^ /p}' \
+    max_rate=$(xrandr | sed -n "/^$hdmi connected/,/^[^ ]/{/^ /p}" \
         | head -1 | grep -oP '[0-9]+\.[0-9]+' \
         | sort -t. -k1,1nr -k2,2nr | head -1)
     xrandr --output eDP --primary --auto \
-           --output HDMI-1-1 --auto --right-of eDP \
+           --output "$hdmi" --auto --right-of eDP \
            ${max_rate:+--rate "$max_rate"}
-    bspc monitor eDP      -d 1 2 3 4 5       # laptop: super+1..5
-    bspc monitor HDMI-1-1 -d 6 7 8 9 10    # external: super+6..0
+    bspc monitor eDP     -d 1 2 3 4 5       # laptop: super+1..5
+    bspc monitor "$hdmi" -d 6 7 8 9 10      # external: super+6..0
 else
     bspc monitor -d 1 2 3 4 5 6 7 8 9 10  # no HDMI: all 10 on eDP
 fi

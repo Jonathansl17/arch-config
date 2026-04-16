@@ -9,11 +9,19 @@ NC='\033[0m'
 echo -e "${CYAN}=== WiFi Manager ===${NC}"
 echo ""
 
-current=$(nmcli -t -f NAME,TYPE connection show --active | awk -F: '$2 ~ /wireless/ {print $1; exit}')
-if [[ -n "$current" ]]; then
-  echo -e "  Status: ${GREEN}Connected${NC} → ${GREEN}$current${NC}"
+eth_conn=$(nmcli -t -f NAME,TYPE connection show --active | awk -F: '$2 ~ /ethernet/ {print $1; exit}')
+wifi_conn=$(nmcli -t -f NAME,TYPE connection show --active | awk -F: '$2 ~ /wireless/ {print $1; exit}')
+
+if [[ -n "$eth_conn" ]]; then
+  echo -e "  LAN:  ${GREEN}Connected${NC} → ${GREEN}$eth_conn${NC}"
 else
-  echo -e "  Status: ${YELLOW}Disconnected${NC}"
+  echo -e "  LAN:  ${YELLOW}Disconnected${NC}"
+fi
+
+if [[ -n "$wifi_conn" ]]; then
+  echo -e "  WiFi: ${GREEN}Connected${NC} → ${GREEN}$wifi_conn${NC}"
+else
+  echo -e "  WiFi: ${YELLOW}Disconnected${NC}"
 fi
 
 echo ""
