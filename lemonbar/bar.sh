@@ -9,13 +9,24 @@ HWMON_TEMP=/sys/class/hwmon/hwmon6/temp1_input   # k10temp Tctl
 BAT_CAP=/sys/class/power_supply/BAT1/capacity
 BAT_STAT=/sys/class/power_supply/BAT1/status
 
-# Primera interfaz wl* (resuelto una vez al arrancar).
+# First wl* interface (resolved once at startup).
 WIFI_IFACE=""
 for _d in /sys/class/net/wl*; do
     [[ -d $_d ]] && WIFI_IFACE=${_d##*/} && break
 done
 WIFI_OPERSTATE="/sys/class/net/$WIFI_IFACE/operstate"
 WIFI_CACHE=/tmp/lemonbar-wifi
+
+# Fallback: when WiFi is down, show "LAN" if any ethernet link is up.
+lan_up() {
+    local f state
+    for f in /sys/class/net/en*/operstate /sys/class/net/eth*/operstate; do
+        [[ -r $f ]] || continue
+        read -r state < "$f"
+        [[ $state == up ]] && return 0
+    done
+    return 1
+}
 
 prev_total=0; prev_idle=0
 # Solo /proc/stat → %CPU. <1 ms. Se llama cada int_cpu.
@@ -72,26 +83,35 @@ read_temp() {
 }
 
 read_wifi() {
-    # Link check instantáneo por /sys. Si no está "up", no se consulta nmcli.
+    # Instant link check via /sys. Skip nmcli when the iface is not "up".
     local state=""
     [[ -r $WIFI_OPERSTATE ]] && read -r state < "$WIFI_OPERSTATE"
     if [[ $state != up ]]; then
-        W="disconnected"
+        if lan_up; then W="LAN"; else W="disconnected"; fi
         return
     fi
     local active
     active=$(nmcli -t -f active,ssid dev wifi 2>/dev/null | awk -F: '$1=="yes"{print $2; exit}')
-    W=${active:-disconnected}
-    [[ $W != disconnected ]] && printf '%s\n' "$W" > "$WIFI_CACHE"
+    if [[ -n $active ]]; then
+        W=$active
+        printf '%s\n' "$W" > "$WIFI_CACHE"
+    elif lan_up; then
+        W="LAN"
+    else
+        W="disconnected"
+    fi
 }
 
-# Primer render: sin bloquear en nmcli. Si el link está up y hay cache, la uso;
-# si no, "disconnected". La próxima iteración (int_wifi) ya refresca real.
+# First render: never block on nmcli. If the link is up and we have a cached
+# SSID, use it; otherwise fall back to LAN/disconnected. Next tick (int_wifi)
+# refreshes with the real value.
 prime_wifi() {
     local state=""
     [[ -r $WIFI_OPERSTATE ]] && read -r state < "$WIFI_OPERSTATE"
     if [[ $state == up && -r $WIFI_CACHE ]]; then
         read -r W < "$WIFI_CACHE"
+    elif lan_up; then
+        W="LAN"
     else
         W="disconnected"
     fi
@@ -137,6 +157,16 @@ render() {
         "$DESKTOPS" "$D" "$cpu_usage" "$cpu_ghz" "$T" "$R" "$W" "$B"
 }
 
+# Confine the bar to the primary monitor, otherwise lemonbar spans the whole
+# root window and leaks a 22px strip onto secondary monitors.
+# xrandr row 0 is always the primary; field 3 is "W/mm x H/mm+X+Y".
+read -r _ _ PRIMARY_GEOM _ < <(xrandr --listmonitors | awk '/^ 0:/')
+PRIMARY_W=${PRIMARY_GEOM%%/*}
+PRIMARY_OFF=${PRIMARY_GEOM#*+}
+PRIMARY_X=${PRIMARY_OFF%+*}
+PRIMARY_Y=${PRIMARY_OFF#*+}
+BAR_GEOM="${PRIMARY_W}x22+${PRIMARY_X}+${PRIMARY_Y}"
+
 # FIFO: dos productores independientes, escrituras atómicas (< PIPE_BUF).
 BAR_FIFO=/tmp/lemonbar-fifo.$$
 mkfifo "$BAR_FIFO"
@@ -167,4 +197,4 @@ trap 'kill 0; rm -f "$BAR_FIFO"' EXIT
         (( now >= next_date )) && { read_date; next_date=$(( now + int_date )); }
         render
     done
-} | lemonbar -p -d -g x22 -B "#CC000000" -F "#FFFFFFFF" -f "monospace:size=12"
+} | lemonbar -p -d -g "$BAR_GEOM" -B "#CC000000" -F "#FFFFFFFF" -f "monospace:size=12"
