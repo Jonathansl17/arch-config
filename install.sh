@@ -106,6 +106,16 @@ else
     warn "aur.txt empty or missing, skipping"
 fi
 
+# --- 3b. Remove packages that were previously installed by this setup but
+#         are no longer part of it. Keep the list short; these are one-off
+#         cleanups after decisions are reversed. Safe no-op on fresh installs.
+for pkg in xss-lock; do
+    if pacman -Q "$pkg" >/dev/null 2>&1; then
+        say "Removing obsolete package: $pkg"
+        sudo pacman -Rns --noconfirm "$pkg"
+    fi
+done
+
 # --- 4. Configs ---
 say "Installing configs from $REPO_DIR"
 for entry in "${MAPPINGS[@]}"; do
