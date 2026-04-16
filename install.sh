@@ -139,20 +139,23 @@ if [[ ! -d /lemonbar ]]; then
     sudo mkdir -p /lemonbar
 fi
 sudo chown "$USER:$USER" /lemonbar
-cp "$REPO_DIR/lemonbar/bar.sh" \
-   "$REPO_DIR/lemonbar/start.sh" \
-   "$REPO_DIR/lemonbar/watcher.sh" \
-   "$REPO_DIR/lemonbar/bspwm-desktops" /lemonbar/
-chmod +x /lemonbar/*.sh /lemonbar/bspwm-desktops
 
-# Reinicio limpio de la barra para que tome los scripts nuevos.
-say "Restarting lemonbar"
+# Stop the running bar first; otherwise cp on /lemonbar/bspwm-desktops
+# fails with "Text file busy" because the binary is in use.
 pkill -f '/lemonbar/watcher.sh' 2>/dev/null || true
 pkill -f '/lemonbar/bar.sh' 2>/dev/null || true
 pkill -x bspwm-desktops 2>/dev/null || true
 pkill -x lemonbar 2>/dev/null || true
 rm -f /tmp/lemonbar-watcher.lock
 sleep 0.3
+
+cp "$REPO_DIR/lemonbar/bar.sh" \
+   "$REPO_DIR/lemonbar/start.sh" \
+   "$REPO_DIR/lemonbar/watcher.sh" \
+   "$REPO_DIR/lemonbar/bspwm-desktops" /lemonbar/
+chmod +x /lemonbar/*.sh /lemonbar/bspwm-desktops
+
+say "Restarting lemonbar"
 setsid -f /lemonbar/watcher.sh </dev/null >/dev/null 2>&1
 
 # --- 4d. Build slock from source (custom config: all-black lock screen) ---
