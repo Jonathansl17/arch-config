@@ -132,17 +132,14 @@ cp "$REPO_DIR/lemonbar/bar.sh" \
    "$REPO_DIR/lemonbar/watcher.sh" /lemonbar/
 chmod +x /lemonbar/*.sh
 
-# Si ya hay un watcher/barra corriendo (re-run sobre sistema vivo), los
-# reinicio para que tomen los scripts nuevos sin necesidad de reboot.
-if pgrep -f '/lemonbar/watcher.sh' >/dev/null; then
-    say "Restarting running watcher to pick up updated scripts"
-    pkill -f '/lemonbar/watcher.sh' 2>/dev/null || true
-    pkill -f '/lemonbar/bar.sh' 2>/dev/null || true
-    pkill -x lemonbar 2>/dev/null || true
-    rm -f /tmp/lemonbar-watcher.lock
-    sleep 0.3
-    setsid -f /lemonbar/watcher.sh </dev/null >/dev/null 2>&1
-fi
+# Reinicio limpio de la barra para que tome los scripts nuevos.
+say "Restarting lemonbar"
+pkill -f '/lemonbar/watcher.sh' 2>/dev/null || true
+pkill -f '/lemonbar/bar.sh' 2>/dev/null || true
+pkill -x lemonbar 2>/dev/null || true
+rm -f /tmp/lemonbar-watcher.lock
+sleep 0.3
+setsid -f /lemonbar/watcher.sh </dev/null >/dev/null 2>&1
 
 # --- 4c. Build slock from source (custom config: all-black lock screen) ---
 say "Building slock from source"
@@ -184,6 +181,11 @@ fi
 say "Setting X11 keyboard layout to latam"
 localectl set-x11-keymap latam pc105+inet "" terminate:ctrl_alt_bksp
 
-say "Done. If bspwm/sxhkd are already running, reload with:"
-printf '    bspc wm -r && pkill -USR1 -x sxhkd\n'
-say "On a fresh machine: reboot so the enabled services start."
+# --- 7. Reload bspwm + sxhkd if running ---
+if pgrep -x bspwm >/dev/null; then
+    say "Reloading bspwm and sxhkd"
+    bspc wm -r
+    pkill -USR1 -x sxhkd 2>/dev/null || true
+fi
+
+say "Done. On a fresh machine: reboot so the enabled services start."
