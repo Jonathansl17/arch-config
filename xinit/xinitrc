@@ -1,7 +1,1 @@
-# Idle lock: fire the X11 screensaver event after 10s of inactivity; xss-lock
-# catches it and launches slock. Also binds to systemd-logind so the screen
-# locks on suspend.
-xset s 10 10
-xss-lock -- slock &
-
 exec bspwm
