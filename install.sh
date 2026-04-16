@@ -116,7 +116,14 @@ done
 chmod +x "$HOME/.config/bspwm/bspwmrc" 2>/dev/null || true
 chmod +x "$HOME/wifi/wifi.sh" 2>/dev/null || true
 
-# --- 4b. Install lemonbar + /lemonbar scripts (custom status bar) ---
+# --- 4b. Build clipcopy (multi-target clipboard for screenshots) ---
+say "Building clipcopy"
+mkdir -p "$HOME/bin"
+gcc -O2 -o "$HOME/bin/clipcopy" "$REPO_DIR/bin/clipcopy.c" \
+    $(pkg-config --cflags --libs gtk+-3.0)
+say "installed: ~/bin/clipcopy"
+
+# --- 4c. Install lemonbar + /lemonbar scripts (custom status bar) ---
 say "Installing lemonbar-xft-git (forces CC=gcc; clang fails with -march)"
 if ! pacman -Q lemonbar-xft-git >/dev/null 2>&1; then
     CC=gcc yay -S --needed --noconfirm lemonbar-xft-git
@@ -141,7 +148,7 @@ rm -f /tmp/lemonbar-watcher.lock
 sleep 0.3
 setsid -f /lemonbar/watcher.sh </dev/null >/dev/null 2>&1
 
-# --- 4c. Build slock from source (custom config: all-black lock screen) ---
+# --- 4d. Build slock from source (custom config: all-black lock screen) ---
 say "Building slock from source"
 SLOCK_BUILD="$HOME/builds/slock"
 if [[ ! -d "$SLOCK_BUILD" ]]; then
@@ -151,7 +158,7 @@ fi
 cp "$REPO_DIR/slock/config.h" "$SLOCK_BUILD/config.h"
 ( cd "$SLOCK_BUILD" && sudo make clean install )
 
-# --- 4d. nvm (Node Version Manager) ---
+# --- 4e. nvm (Node Version Manager) ---
 # Cloned into ~/.nvm; the loader is already in bash/bashrc. We pin a tag so
 # the install is reproducible; bump NVM_VERSION when a new release is out.
 NVM_VERSION="v0.40.1"
@@ -162,7 +169,7 @@ else
     say "nvm already present at ~/.nvm (skipping)"
 fi
 
-# --- 4e. sysctl tweaks ---
+# --- 4f. sysctl tweaks ---
 say "Installing sysctl configs"
 sudo cp "$REPO_DIR/sysctl/99-swappiness.conf" /etc/sysctl.d/99-swappiness.conf
 sudo sysctl --system >/dev/null 2>&1

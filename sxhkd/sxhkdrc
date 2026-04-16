@@ -112,7 +112,7 @@ super + l
     slock
 
 Print
-    sh -c 'mkdir -p ~/screenshots && f=~/screenshots/$(date +%Y%m%d-%H%M%S).png && maim -s "$f" && xclip -selection clipboard -t image/png < "$f"'
+    sh -c 'mkdir -p ~/screenshots && f=~/screenshots/$(date +%Y%m%d-%H%M%S).png && maim -s "$f" && ~/bin/clipcopy "$f"'
 
 
 ########################

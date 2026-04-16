@@ -72,10 +72,10 @@ xdg-utils
 xdo
 xdotool
 
-# --- Screenshot (Print -> maim -s | xclip) ---
+# --- Screenshot (Print -> maim -s | clipcopy) ---
 maim
 slop
-xclip
+gtk3
 
 # --- Apps ---
 libreoffice-fresh
