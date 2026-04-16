@@ -5,25 +5,21 @@
 D=""; B="no-bat"; T="--"; W="disconnected"; R="--"
 cpu_usage="--"; cpu_ghz="-.-"; DESKTOPS=""
 
-DESKTOP_CACHE=/tmp/lemonbar-desktops
-
-update_desktop_cache() {
-    local focused names
-    focused=$(bspc query -D -d focused --names 2>/dev/null)
-    names=$(bspc query -D --names 2>/dev/null)
-    local out=""
-    while IFS= read -r d; do
-        if [[ $d == "$focused" ]]; then
-            out+="%{F#FF000000}%{B#FFFFFFFF} $d %{B-}%{F-}"
-        else
-            out+="%{F#88FFFFFF} $d %{F-}"
-        fi
-    done <<< "$names"
-    printf '%s\n' "$out" > "$DESKTOP_CACHE"
-}
-
-read_desktops() {
-    [[ -r $DESKTOP_CACHE ]] && read -r DESKTOPS < "$DESKTOP_CACHE"
+# Parsea una línea de bspc subscribe report → DESKTOPS formateado.
+# Formato: WMeDP:O1:f2:o3:... (O/F/U = focused, o/f/u = no focused)
+parse_report() {
+    local report="$1" out="" IFS=':'
+    for token in $report; do
+        case $token in
+            W*|L*|T*|G*) continue ;;  # skip monitor/layout/state tokens
+        esac
+        local flag=${token:0:1} name=${token:1}
+        case $flag in
+            O|F|U) out+="%{F#FF000000}%{B#FFFFFFFF} $name %{B-}%{F-}" ;;
+            o|f|u) out+="%{F#88FFFFFF} $name %{F-}" ;;
+        esac
+    done
+    DESKTOPS="$out"
 }
 
 HWMON_TEMP=/sys/class/hwmon/hwmon6/temp1_input   # k10temp Tctl
@@ -154,43 +150,22 @@ next_wifi=$(( now + int_wifi ))
 next_cpu=$((  now + int_cpu  ))
 first_run=1
 
-# Función que actualiza el cache de escritorios.
-update_desktop_cache() {
-    local focused names
-    focused=$(bspc query -D -d focused --names 2>/dev/null)
-    names=$(bspc query -D --names 2>/dev/null)
-    local out=""
-    while IFS= read -r d; do
-        if [[ $d == "$focused" ]]; then
-            out+="%{F#FF000000}%{B#FFFFFFFF} $d %{B-}%{F-}"
-        else
-            out+="%{F#88FFFFFF} $d %{F-}"
-        fi
-    done <<< "$names"
-    printf '%s\n' "$out" > "$DESKTOP_CACHE"
-}
-
 render() {
-    read_desktops
     printf '%%{l} %s %%{c}%s  |  CPU %s%% %sGHz %s  |  RAM %sGB  |  WIFI %s  |  BAT %s\n' \
         "$DESKTOPS" "$D" "$cpu_usage" "$cpu_ghz" "$T" "$R" "$W" "$B"
 }
 
-# Dos productores → un pipe (fd 3). El loop bloquea en read: 0 CPU idle,
-# despierta instantáneo con desktop events, cada 1s chequea métricas.
+# Dos productores → un pipe (fd 3).
+# bspc subscribe report: estado completo de escritorios en cada evento (sin queries).
+# Ticker 1s: chequeo de métricas.
 exec 3< <(
-    # Desktop events → "D" instantáneo.
-    (bspc subscribe desktop_focus node_transfer | while read -r _; do
-        update_desktop_cache
-        echo D
-    done) &
-    # Ticker 1s → "T" para chequear métricas.
+    bspc subscribe report &
     while :; do sleep 1; echo T; done
 )
 trap "kill 0" EXIT
 
-# Prime inicial de desktops.
-update_desktop_cache
+# Prime inicial.
+parse_report "$(bspc subscribe report -c 1)"
 render
 
 if (( first_run )); then
@@ -200,6 +175,9 @@ if (( first_run )); then
 fi
 
 while read -r ev <&3; do
+    # Si es un report de bspc (empieza con W), parsear escritorios.
+    [[ $ev == W* ]] && parse_report "$ev"
+
     printf -v now '%(%s)T' -1
     (( now >= next_cpu  )) && { read_cpu;  next_cpu=$((  now + int_cpu  )); }
     (( now >= next_ghz  )) && { read_ghz;  next_ghz=$((  now + int_ghz  )); }
