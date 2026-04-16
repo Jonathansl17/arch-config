@@ -1,6 +1,6 @@
 #!/bin/bash
-# Feeder optimizado: lecturas directas de /proc y /sys, builtins bash.
-# Event-driven: solo despierta cuando toca refrescar alguna métrica.
+# Optimized feeder: direct reads from /proc and /sys, bash builtins only.
+# Event-driven: wakes up only when a metric is due for refresh.
 
 D=""; B="no-bat"; T="--"; W="disconnected"; R="--"
 cpu_usage="--"; cpu_ghz="-.-"; DESKTOPS=""
@@ -29,7 +29,7 @@ lan_up() {
 }
 
 prev_total=0; prev_idle=0
-# Solo /proc/stat → %CPU. <1 ms. Se llama cada int_cpu.
+# /proc/stat -> %CPU. <1 ms. Called every int_cpu seconds.
 read_cpu() {
     local _ u n s i io ir sirq st
     read -r _ u n s i io ir sirq st _ < /proc/stat
@@ -41,7 +41,7 @@ read_cpu() {
     (( dt > 0 )) && cpu_usage=$(( (100 * (dt - di)) / dt ))
 }
 
-# GHz real desde cpuinfo_avg_freq (CPPC HW feedback, no la freq "deseada").
+# Real GHz from cpuinfo_avg_freq (CPPC HW feedback, not the "requested" freq).
 read_ghz() {
     local sum=0 nc=0 freq
     for f in /sys/devices/system/cpu/cpu*/cpufreq/cpuinfo_avg_freq; do
@@ -66,7 +66,7 @@ read_ram() {
         esac
     done < /proc/meminfo
     local used=$((t - a))
-    # GB con 1 decimal: (kB * 10) / 1048576 → .1 GB
+    # GB with 1 decimal: (kB * 10) / 1048576 -> .1 GB
     local u10=$(( used * 10 / 1048576 ))
     local t10=$(( t    * 10 / 1048576 ))
     R="$((u10/10)).$((u10%10))/$((t10/10)).$((t10%10))"
@@ -132,24 +132,24 @@ read_date() {
     printf -v D '%(%a %d %b %I:%M %p)T' -1
 }
 
-# Intervalos (s): CPU=2, GHZ=5, RAM=3, TEMP=5, WIFI=15, BAT=30, DATE=60
+# Refresh intervals (s): CPU=2, GHZ=5, RAM=3, TEMP=5, WIFI=15, BAT=30, DATE=60
 int_cpu=2; int_ghz=5; int_ram=3; int_temp=5; int_wifi=15; int_bat=30; int_date=60
 
-# Prime baseline de /proc/stat (sin el parse caro de cpuinfo).
-# Solo establece prev_total/prev_idle; reseteamos cpu_usage para no
-# mostrar el promedio-desde-boot como si fuera el uso actual.
+# Prime baseline from /proc/stat (skip the expensive cpuinfo parse).
+# Sets prev_total/prev_idle; cpu_usage is reset so we don't render the
+# since-boot average as if it were the current usage.
 read_cpu; cpu_usage="--"
-prime_wifi  # cache hit, no bloquea en nmcli
+prime_wifi  # cache hit, never blocks on nmcli
 
-# now = epoch real (builtin bash, sin fork). Evita derivas frente a un contador.
+# now = real epoch (bash builtin, no fork). Avoids drift versus a counter.
 printf -v now '%(%s)T' -1
 next_ram=$now; next_temp=$now
 next_bat=$now; next_date=$now
-# Diferimos los reads caros para que el primer frame salga ya.
+# Defer the expensive reads so the first frame renders immediately.
 next_ghz=$((  now + int_ghz  ))
 next_wifi=$(( now + int_wifi ))
-# Diferimos el primer %CPU: necesita un delta real de /proc/stat contra el
-# prime para no dar un valor basura (p.ej. 100% por 1 jiffy de ruido).
+# Defer the first %CPU: needs a real /proc/stat delta against the prime,
+# otherwise we'd print garbage (e.g. 100% from a 1-jiffy blip).
 next_cpu=$((  now + int_cpu  ))
 
 render() {
@@ -167,16 +167,16 @@ PRIMARY_X=${PRIMARY_OFF%+*}
 PRIMARY_Y=${PRIMARY_OFF#*+}
 BAR_GEOM="${PRIMARY_W}x22+${PRIMARY_X}+${PRIMARY_Y}"
 
-# FIFO: dos productores independientes, escrituras atómicas (< PIPE_BUF).
+# FIFO: two independent producers, atomic writes (< PIPE_BUF).
 BAR_FIFO=/tmp/lemonbar-fifo.$$
 mkfifo "$BAR_FIFO"
 exec 3<>"$BAR_FIFO"
 trap 'kill 0; rm -f "$BAR_FIFO"' EXIT
 
-# Productor 1: bspwm-desktops conecta directo al socket de bspwm (sin bspc).
-# Cada línea es el string formateado de desktops para lemonbar.
+# Producer 1: bspwm-desktops talks directly to the bspwm socket (no bspc).
+# Each line is a preformatted desktops string for lemonbar.
 /lemonbar/bspwm-desktops > "$BAR_FIFO" &
-# Productor 2: tick cada 1s para métricas.
+# Producer 2: 1s tick for metric refresh.
 (while :; do sleep 1; printf 'T\n'; done) > "$BAR_FIFO" &
 
 {
@@ -184,7 +184,7 @@ trap 'kill 0; rm -f "$BAR_FIFO"' EXIT
     render
 
     while read -r ev <&3; do
-        # Líneas del binario C = desktops formateados. "T" = tick de métricas.
+        # Lines from the C binary = formatted desktops. "T" = metrics tick.
         [[ $ev != T ]] && DESKTOPS="$ev"
 
         printf -v now '%(%s)T' -1

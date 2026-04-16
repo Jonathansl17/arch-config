@@ -1,7 +1,7 @@
 /*
- * bspwm-desktops: conecta directo al socket Unix de bspwm, subscribe report,
- * parsea la línea y escribe el string formateado para lemonbar a stdout.
- * Sin intermediarios (bspc), sin buffering extra.
+ * bspwm-desktops: connects directly to the bspwm Unix socket, subscribes to
+ * the report stream, parses each line and writes the preformatted lemonbar
+ * string to stdout. No bspc in between, no extra buffering.
  */
 #include <stdio.h>
 #include <stdlib.h>
