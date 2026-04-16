@@ -1,6 +1,6 @@
 # TERMINAL (bspwm tiles it: split if there are windows, fills the desktop otherwise)
 control + less
-    alacritty
+    alacritty-cwd
 
 # CLOSE WINDOW
 control + q
@@ -13,19 +13,19 @@ control + q
 
 # SPLIT RIGHT
 control + shift + d
-    bspc node -p east; alacritty --class split_term,split_term
+    bspc node -p east; alacritty-cwd --class split_term,split_term
 
 # SPLIT LEFT
 control + shift + a
-    bspc node -p west; alacritty --class split_term,split_term
+    bspc node -p west; alacritty-cwd --class split_term,split_term
 
 # SPLIT UP
 control + shift + w
-    bspc node -p north; alacritty --class split_term,split_term
+    bspc node -p north; alacritty-cwd --class split_term,split_term
 
 # SPLIT DOWN
 control + shift + s
-    bspc node -p south; alacritty --class split_term,split_term
+    bspc node -p south; alacritty-cwd --class split_term,split_term
 
 
 ########################

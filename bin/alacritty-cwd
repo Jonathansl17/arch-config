@@ -1,0 +1,23 @@
+#!/bin/bash
+# Launch alacritty inheriting cwd from the focused Alacritty window.
+# Falls back to $HOME if the focused window is not Alacritty or cwd cannot be read.
+
+cwd="$HOME"
+
+win=$(xdotool getactivewindow 2>/dev/null)
+if [ -n "$win" ]; then
+    wm_class=$(xprop -id "$win" WM_CLASS 2>/dev/null)
+    if echo "$wm_class" | grep -qiE '"(Alacritty|split_term)"'; then
+        pid=$(xdotool getwindowpid "$win" 2>/dev/null)
+        if [ -n "$pid" ]; then
+            child=$(pgrep -P "$pid" | head -n1)
+            target_pid="${child:-$pid}"
+            target_cwd=$(readlink "/proc/$target_pid/cwd" 2>/dev/null)
+            if [ -n "$target_cwd" ] && [ -d "$target_cwd" ]; then
+                cwd="$target_cwd"
+            fi
+        fi
+    fi
+fi
+
+exec alacritty --working-directory "$cwd" "$@"

@@ -25,6 +25,7 @@ MAPPINGS=(
     "xinit/xinitrc            $HOME/.xinitrc"
     "templates/template.xopp  $HOME/templates/template.xopp"
     "wifi/wifi.sh             $HOME/wifi/wifi.sh"
+    "bin/alacritty-cwd        $HOME/bin/alacritty-cwd"
 )
 
 read_pkglist() {
@@ -112,9 +113,10 @@ for entry in "${MAPPINGS[@]}"; do
     install_file $entry
 done
 
-# bspwmrc and wifi.sh must be executable
+# bspwmrc, wifi.sh and alacritty-cwd must be executable
 chmod +x "$HOME/.config/bspwm/bspwmrc" 2>/dev/null || true
 chmod +x "$HOME/wifi/wifi.sh" 2>/dev/null || true
+chmod +x "$HOME/bin/alacritty-cwd" 2>/dev/null || true
 
 # --- 4b. Build clipcopy (multi-target clipboard for screenshots) ---
 say "Building clipcopy"
