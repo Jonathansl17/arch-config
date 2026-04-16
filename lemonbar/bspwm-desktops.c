@@ -49,7 +49,11 @@ static int connect_bspwm(void)
     if (fd < 0) return -1;
 
     struct sockaddr_un addr = { .sun_family = AF_UNIX };
-    strncpy(addr.sun_path, path, sizeof(addr.sun_path) - 1);
+    if (snprintf(addr.sun_path, sizeof(addr.sun_path), "%s", path)
+        >= (int)sizeof(addr.sun_path)) {
+        close(fd);
+        return -1;
+    }
 
     if (connect(fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
         close(fd);
