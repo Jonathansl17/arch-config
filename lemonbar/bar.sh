@@ -3,7 +3,28 @@
 # Event-driven: solo despierta cuando toca refrescar alguna métrica.
 
 D=""; B="no-bat"; T="--"; W="disconnected"; R="--"
-cpu_usage="--"; cpu_ghz="-.-"
+cpu_usage="--"; cpu_ghz="-.-"; DESKTOPS=""
+
+DESKTOP_CACHE=/tmp/lemonbar-desktops
+
+update_desktop_cache() {
+    local focused names
+    focused=$(bspc query -D -d focused --names 2>/dev/null)
+    names=$(bspc query -D --names 2>/dev/null)
+    local out=""
+    while IFS= read -r d; do
+        if [[ $d == "$focused" ]]; then
+            out+="%{F#FF000000}%{B#FFFFFFFF} $d %{B-}%{F-}"
+        else
+            out+="%{F#88FFFFFF} $d %{F-}"
+        fi
+    done <<< "$names"
+    printf '%s\n' "$out" > "$DESKTOP_CACHE"
+}
+
+read_desktops() {
+    [[ -r $DESKTOP_CACHE ]] && read -r DESKTOPS < "$DESKTOP_CACHE"
+}
 
 HWMON_TEMP=/sys/class/hwmon/hwmon6/temp1_input   # k10temp Tctl
 BAT_CAP=/sys/class/power_supply/BAT1/capacity
@@ -133,7 +154,53 @@ next_wifi=$(( now + int_wifi ))
 next_cpu=$((  now + int_cpu  ))
 first_run=1
 
-while :; do
+# Función que actualiza el cache de escritorios.
+update_desktop_cache() {
+    local focused names
+    focused=$(bspc query -D -d focused --names 2>/dev/null)
+    names=$(bspc query -D --names 2>/dev/null)
+    local out=""
+    while IFS= read -r d; do
+        if [[ $d == "$focused" ]]; then
+            out+="%{F#FF000000}%{B#FFFFFFFF} $d %{B-}%{F-}"
+        else
+            out+="%{F#88FFFFFF} $d %{F-}"
+        fi
+    done <<< "$names"
+    printf '%s\n' "$out" > "$DESKTOP_CACHE"
+}
+
+render() {
+    read_desktops
+    printf '%%{l} %s %%{c}%s  |  CPU %s%% %sGHz %s  |  RAM %sGB  |  WIFI %s  |  BAT %s\n' \
+        "$DESKTOPS" "$D" "$cpu_usage" "$cpu_ghz" "$T" "$R" "$W" "$B"
+}
+
+# Dos productores → un pipe (fd 3). El loop bloquea en read: 0 CPU idle,
+# despierta instantáneo con desktop events, cada 1s chequea métricas.
+exec 3< <(
+    # Desktop events → "D" instantáneo.
+    (bspc subscribe desktop_focus node_transfer | while read -r _; do
+        update_desktop_cache
+        echo D
+    done) &
+    # Ticker 1s → "T" para chequear métricas.
+    while :; do sleep 1; echo T; done
+)
+trap "kill 0" EXIT
+
+# Prime inicial de desktops.
+update_desktop_cache
+render
+
+if (( first_run )); then
+    first_run=0
+    read_ghz
+    render
+fi
+
+while read -r ev <&3; do
+    printf -v now '%(%s)T' -1
     (( now >= next_cpu  )) && { read_cpu;  next_cpu=$((  now + int_cpu  )); }
     (( now >= next_ghz  )) && { read_ghz;  next_ghz=$((  now + int_ghz  )); }
     (( now >= next_ram  )) && { read_ram;  next_ram=$((  now + int_ram  )); }
@@ -141,29 +208,5 @@ while :; do
     (( now >= next_wifi )) && { read_wifi; next_wifi=$(( now + int_wifi )); }
     (( now >= next_bat  )) && { read_bat;  next_bat=$((  now + int_bat  )); }
     (( now >= next_date )) && { read_date; next_date=$(( now + int_date )); }
-
-    printf '%%{c}%s  |  CPU %s%% %sGHz %s  |  RAM %sGB  |  WIFI %s  |  BAT %s\n' \
-        "$D" "$cpu_usage" "$cpu_ghz" "$T" "$R" "$W" "$B"
-
-    # Primer frame: leer GHz inmediatamente para no mostrar "-.-" por 5s.
-    # Solo se ejecuta al login (la barra ya no se reinicia en cada fullscreen).
-    if (( first_run )); then
-        first_run=0
-        read_ghz
-        printf '%%{c}%s  |  CPU %s%% %sGHz %s  |  RAM %sGB  |  WIFI %s  |  BAT %s\n' \
-            "$D" "$cpu_usage" "$cpu_ghz" "$T" "$R" "$W" "$B"
-    fi
-
-    nxt=$next_cpu
-    (( next_ghz  < nxt )) && nxt=$next_ghz
-    (( next_ram  < nxt )) && nxt=$next_ram
-    (( next_temp < nxt )) && nxt=$next_temp
-    (( next_wifi < nxt )) && nxt=$next_wifi
-    (( next_bat  < nxt )) && nxt=$next_bat
-    (( next_date < nxt )) && nxt=$next_date
-
-    printf -v now '%(%s)T' -1
-    delay=$(( nxt - now ))
-    (( delay > 0 )) && sleep "$delay"
-    printf -v now '%(%s)T' -1
+    render
 done | lemonbar -p -d -g x22 -B "#CC000000" -F "#FFFFFFFF" -f "monospace:size=12"
