@@ -112,6 +112,19 @@ xournalpp() {
 libreoffice() {
     setsid -f /usr/bin/libreoffice "$@" >/dev/null 2>&1
 }
+xp() {
+    if [ $# -eq 0 ]; then
+        echo "uso: xp archivo.xopp [archivo2.xopp ...]" >&2
+        return 1
+    fi
+    for f in "$@"; do
+        if [ ! -e "$f" ]; then
+            echo "xp: no existe '$f'" >&2
+            continue
+        fi
+        /usr/bin/xournalpp --create-pdf "${f%.*}.pdf" "$f"
+    done
+}
 
 # === CPU temp ===
 t() {
