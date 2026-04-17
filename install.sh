@@ -27,6 +27,7 @@ MAPPINGS=(
     "wifi/wifi.sh             $HOME/wifi/wifi.sh"
     "bin/alacritty-cwd        $HOME/bin/alacritty-cwd"
     "nvim/init.lua            $HOME/.config/nvim/init.lua"
+    "nvim/ideavimrc           $HOME/.ideavimrc"
 )
 
 read_pkglist() {

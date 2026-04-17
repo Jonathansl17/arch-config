@@ -1,0 +1,49 @@
+" IdeaVim config — mirrors ~/.config/nvim/init.lua used by vscode-neovim.
+" Docs: https://github.com/JetBrains/ideavim
+
+let mapleader = " "
+let maplocalleader = " "
+
+set number
+set relativenumber
+set expandtab
+set shiftwidth=2
+set tabstop=2
+set smartindent
+set ignorecase
+set smartcase
+set scrolloff=8
+set nowrap
+set virtualedit=onemore
+set clipboard+=unnamedplus
+
+" IdeaVim extensions
+set surround
+set commentary
+set highlightedyank
+
+" --- Leader mappings ---
+
+" File tree / navigation
+nnoremap <leader>e :action ActivateProjectToolWindow<CR>
+nnoremap <leader>o :action ActivateProjectToolWindow<CR>
+nnoremap <leader>F :action SelectInProjectView<CR>
+nnoremap <leader>x :action CloseContent<CR>
+nnoremap <Tab> :action NextTab<CR>
+nnoremap <S-Tab> :action PreviousTab<CR>
+
+" Search
+nnoremap <leader>f :action FindInPath<CR>
+
+" Refactor / diagnostics
+nnoremap <leader>n :action RenameElement<CR>
+nnoremap <leader>ca :action ShowIntentionActions<CR>
+vnoremap <leader>ca :action ShowIntentionActions<CR>
+
+" LSP-like navigation
+nnoremap gd :action GotoDeclaration<CR>
+nnoremap gr :action FindUsages<CR>
+nnoremap gi :action GotoImplementation<CR>
+nnoremap K :action QuickJavaDoc<CR>
+nnoremap [d :action GotoPreviousError<CR>
+nnoremap ]d :action GotoNextError<CR>
