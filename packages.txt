@@ -106,6 +106,7 @@ fastfetch
 htop
 less
 nano
+neovim
 vim
 zip
 luajit

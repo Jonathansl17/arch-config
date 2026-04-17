@@ -26,6 +26,7 @@ MAPPINGS=(
     "templates/template.xopp  $HOME/templates/template.xopp"
     "wifi/wifi.sh             $HOME/wifi/wifi.sh"
     "bin/alacritty-cwd        $HOME/bin/alacritty-cwd"
+    "nvim/init.lua            $HOME/.config/nvim/init.lua"
 )
 
 read_pkglist() {
