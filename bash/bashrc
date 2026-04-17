@@ -131,6 +131,18 @@ t() {
     sensors k10temp-pci-00c3 | awk '/^Tctl:/ {print "CPU: " $2}'
 }
 
+# === Volume and mic ===
+vm() {
+    local sink_info src_info vol mic smuted mmuted
+    sink_info=$(wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null)
+    src_info=$(wpctl get-volume @DEFAULT_AUDIO_SOURCE@ 2>/dev/null)
+    vol=$(awk '{printf "%d", $2*100}' <<<"$sink_info")
+    mic=$(awk '{printf "%d", $2*100}' <<<"$src_info")
+    grep -q MUTED <<<"$sink_info" && smuted=" (muted)"
+    grep -q MUTED <<<"$src_info" && mmuted=" (muted)"
+    echo "Volume: ${vol}%${smuted} — Mic: ${mic}%${mmuted}"
+}
+
 # === nvm (Node Version Manager) ===
 # nvm is cloned to ~/.nvm by install.sh. If the directory isn't there,
 # the two lines below are no-ops and the shell starts normally.

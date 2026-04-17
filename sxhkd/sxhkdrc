@@ -193,12 +193,22 @@ super + shift + Up
 
 
 # VOLUME (output)
-XF86AudioRaiseVolume
+super + F3
     wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ 5%+
 
-XF86AudioLowerVolume
+super + F2
     wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-
 
-XF86AudioMute
+super + F1
     wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
+
+# MIC VOLUME (input)
+super + F8
+    wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SOURCE@ 5%+
+
+super + F7
+    wpctl set-volume @DEFAULT_AUDIO_SOURCE@ 5%-
+
+super + F4
+    wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle
 
