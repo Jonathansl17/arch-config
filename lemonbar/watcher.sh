@@ -6,7 +6,7 @@ exec 9>"$LOCK"
 flock -n 9 || exit 0
 
 sync_bar() {
-    if [ -n "$(bspc query -N -m eDP -n .fullscreen 2>/dev/null)" ]; then
+    if [ -n "$(bspc query -N -d eDP:focused -n .fullscreen 2>/dev/null)" ]; then
         # Fullscreen: hide the bar without killing it to preserve metrics state.
         xdo hide -n lemonbar 2>/dev/null
         bspc config -m eDP top_padding 0 2>/dev/null
