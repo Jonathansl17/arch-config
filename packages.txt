@@ -64,8 +64,7 @@ noto-fonts
 xorg-fonts-misc
 
 # --- File managers and utilities ---
-thunar
-thunar-archive-plugin
+pcmanfm
 gvfs
 file-roller
 xdg-utils

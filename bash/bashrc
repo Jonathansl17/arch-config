@@ -16,7 +16,7 @@ alias postman="setsid -f postman >/dev/null 2>&1"
 alias idea="setsid -f idea >/dev/null 2>&1"
 alias code="setsid -f code >/dev/null 2>&1"
 alias brave="setsid -f brave >/dev/null 2>&1"
-alias thunar="setsid -f thunar >/dev/null 2>&1"
+alias pcmanfm="setsid -f pcmanfm >/dev/null 2>&1"
 alias discord="setsid -f discord >/dev/null 2>&1"
 alias telegram="setsid -f Telegram >/dev/null 2>&1"
 alias obs="setsid -f obs >/dev/null 2>&1"
@@ -39,8 +39,61 @@ export ANDROID_HOME=/opt/android-sdk
 export ANDROID_SDK_ROOT=$ANDROID_HOME
 export PATH=$PATH:$JAVA_HOME/bin:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/build-tools/34.0.0
 
+
+
+# === network ===
+alias wifi='bash ~/wifi/wifi.sh'
+
+# === GUI launcher functions ===
+xournalpp() {
+    for arg in "$@"; do
+        case "$arg" in
+            -*) ;;
+            *.xopp) [ -e "$arg" ] || cp ~/templates/template.xopp "$arg" ;;
+        esac
+    done
+    setsid -f /usr/bin/xournalpp "$@" >/dev/null 2>&1
+}
+libreoffice() {
+    setsid -f /usr/bin/libreoffice "$@" >/dev/null 2>&1
+}
+xp() {
+    if [ $# -eq 0 ]; then
+        echo "uso: xp archivo.xopp [archivo2.xopp ...]" >&2
+        return 1
+    fi
+    for f in "$@"; do
+        if [ ! -e "$f" ]; then
+            echo "xp: no existe '$f'" >&2
+            continue
+        fi
+        /usr/bin/xournalpp --create-pdf "${f%.*}.pdf" "$f"
+    done
+}
+
+# === CPU temp ===
+t() {
+    sensors k10temp-pci-00c3 | awk '/^Tctl:/ {print "CPU: " $2}'
+}
+
+# === nvm (Node Version Manager) ===
+# nvm is cloned to ~/.nvm by install.sh. If the directory isn't there,
+# the two lines below are no-ops and the shell starts normally.
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+
+# === local overrides (NOT VERSIONED) ===
+# ~/.bashrc.local is for aliases/variables with credentials, tokens
+# or anything machine-specific that must not travel with the repo.
+# If it doesn't exist nothing happens — this block is optional.
+[ -f "$HOME/.bashrc.local" ] && . "$HOME/.bashrc.local"
+
 # === termclip configuration ===
 # Terminal clipboard utilities (c, v, cc)
+# Added automatically on Fri Apr 17 11:31:18 AM CST 2026
+export PATH="$HOME/bin:$PATH"
+#This is the bash configuration file for my custom scripts
 export PATH="$HOME/bin:$PATH"
 
 #Copy a file to clipboard from terminal
@@ -79,6 +132,20 @@ cc() {
     echo "   $1"
 }
 
+# Copy the current working directory path to the clipboard
+cpwd() {
+    target="${1:-$(pwd)}"
+
+    # Kill previous cpwd.py processes
+    pkill -f "$HOME/bin/cpwd.py" 2>/dev/null
+
+    # Launch new
+    "$HOME/bin/cpwd.py" "$target" >/dev/null 2>&1 & disown
+
+    echo "Path copied to clipboard:"
+    echo "   $target"
+}
+
 # Paste a file from the clipboard into the current directory
 v() {
     output=$("$HOME/bin/v.py" "$@")
@@ -95,43 +162,7 @@ v() {
 
 # === end termclip ===
 
-
-# === network ===
-alias wifi='bash ~/wifi/wifi.sh'
-
-# === GUI launcher functions ===
-xournalpp() {
-    for arg in "$@"; do
-        case "$arg" in
-            -*) ;;
-            *.xopp) [ -e "$arg" ] || cp ~/templates/template.xopp "$arg" ;;
-        esac
-    done
-    setsid -f /usr/bin/xournalpp "$@" >/dev/null 2>&1
-}
-libreoffice() {
-    setsid -f /usr/bin/libreoffice "$@" >/dev/null 2>&1
-}
-xp() {
-    if [ $# -eq 0 ]; then
-        echo "uso: xp archivo.xopp [archivo2.xopp ...]" >&2
-        return 1
-    fi
-    for f in "$@"; do
-        if [ ! -e "$f" ]; then
-            echo "xp: no existe '$f'" >&2
-            continue
-        fi
-        /usr/bin/xournalpp --create-pdf "${f%.*}.pdf" "$f"
-    done
-}
-
-# === CPU temp ===
-t() {
-    sensors k10temp-pci-00c3 | awk '/^Tctl:/ {print "CPU: " $2}'
-}
-
-# === Volume and mic ===
+# Volumen y micrófono
 vm() {
     local sink_info src_info vol mic smuted mmuted
     sink_info=$(wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null)
@@ -142,16 +173,3 @@ vm() {
     grep -q MUTED <<<"$src_info" && mmuted=" (muted)"
     echo "Volume: ${vol}%${smuted} — Mic: ${mic}%${mmuted}"
 }
-
-# === nvm (Node Version Manager) ===
-# nvm is cloned to ~/.nvm by install.sh. If the directory isn't there,
-# the two lines below are no-ops and the shell starts normally.
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-
-# === local overrides (NOT VERSIONED) ===
-# ~/.bashrc.local is for aliases/variables with credentials, tokens
-# or anything machine-specific that must not travel with the repo.
-# If it doesn't exist nothing happens — this block is optional.
-[ -f "$HOME/.bashrc.local" ] && . "$HOME/.bashrc.local"
