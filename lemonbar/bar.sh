@@ -2,31 +2,10 @@
 # Optimized feeder: direct reads from /proc and /sys, bash builtins only.
 # Event-driven: wakes up only when a metric is due for refresh.
 
-D=""; B="no-bat"; T="--"; W="disconnected"; R="--"
+D=""; T="--"; R="--"
 cpu_usage="--"; cpu_ghz="-.-"; DESKTOPS=""
 
 HWMON_TEMP=/sys/class/hwmon/hwmon6/temp1_input   # k10temp Tctl
-BAT_CAP=/sys/class/power_supply/BAT1/capacity
-BAT_STAT=/sys/class/power_supply/BAT1/status
-
-# First wl* interface (resolved once at startup).
-WIFI_IFACE=""
-for _d in /sys/class/net/wl*; do
-    [[ -d $_d ]] && WIFI_IFACE=${_d##*/} && break
-done
-WIFI_OPERSTATE="/sys/class/net/$WIFI_IFACE/operstate"
-WIFI_CACHE=/tmp/lemonbar-wifi
-
-# Fallback: when WiFi is down, show "LAN" if any ethernet link is up.
-lan_up() {
-    local f state
-    for f in /sys/class/net/en*/operstate /sys/class/net/eth*/operstate; do
-        [[ -r $f ]] || continue
-        read -r state < "$f"
-        [[ $state == up ]] && return 0
-    done
-    return 1
-}
 
 prev_total=0; prev_idle=0
 # /proc/stat -> %CPU. <1 ms. Called every int_cpu seconds.
@@ -82,79 +61,31 @@ read_temp() {
     fi
 }
 
-read_wifi() {
-    # Instant link check via /sys. Skip nmcli when the iface is not "up".
-    local state=""
-    [[ -r $WIFI_OPERSTATE ]] && read -r state < "$WIFI_OPERSTATE"
-    if [[ $state != up ]]; then
-        if lan_up; then W="LAN"; else W="disconnected"; fi
-        return
-    fi
-    local active
-    active=$(nmcli -t -f active,ssid dev wifi 2>/dev/null | awk -F: '$1=="yes"{print $2; exit}')
-    if [[ -n $active ]]; then
-        W=$active
-        printf '%s\n' "$W" > "$WIFI_CACHE"
-    elif lan_up; then
-        W="LAN"
-    else
-        W="disconnected"
-    fi
-}
-
-# First render: never block on nmcli. If the link is up and we have a cached
-# SSID, use it; otherwise fall back to LAN/disconnected. Next tick (int_wifi)
-# refreshes with the real value.
-prime_wifi() {
-    local state=""
-    [[ -r $WIFI_OPERSTATE ]] && read -r state < "$WIFI_OPERSTATE"
-    if [[ $state == up && -r $WIFI_CACHE ]]; then
-        read -r W < "$WIFI_CACHE"
-    elif lan_up; then
-        W="LAN"
-    else
-        W="disconnected"
-    fi
-}
-
-read_bat() {
-    if [[ -r $BAT_CAP ]]; then
-        local cap st
-        read -r cap < "$BAT_CAP"
-        read -r st  < "$BAT_STAT"
-        B="${cap}% ${st}"
-    else
-        B="no-bat"
-    fi
-}
-
 read_date() {
     printf -v D '%(%a %d %b %I:%M %p)T' -1
 }
 
-# Refresh intervals (s): CPU=2, GHZ=5, RAM=3, TEMP=5, WIFI=15, BAT=30, DATE=60
-int_cpu=2; int_ghz=5; int_ram=3; int_temp=5; int_wifi=15; int_bat=30; int_date=60
+# Refresh intervals (s): CPU=2, GHZ=5, RAM=3, TEMP=5, DATE=60
+int_cpu=2; int_ghz=5; int_ram=3; int_temp=5; int_date=60
 
 # Prime baseline from /proc/stat (skip the expensive cpuinfo parse).
 # Sets prev_total/prev_idle; cpu_usage is reset so we don't render the
 # since-boot average as if it were the current usage.
 read_cpu; cpu_usage="--"
-prime_wifi  # cache hit, never blocks on nmcli
 
 # now = real epoch (bash builtin, no fork). Avoids drift versus a counter.
 printf -v now '%(%s)T' -1
 next_ram=$now; next_temp=$now
-next_bat=$now; next_date=$now
+next_date=$now
 # Defer the expensive reads so the first frame renders immediately.
 next_ghz=$((  now + int_ghz  ))
-next_wifi=$(( now + int_wifi ))
 # Defer the first %CPU: needs a real /proc/stat delta against the prime,
 # otherwise we'd print garbage (e.g. 100% from a 1-jiffy blip).
 next_cpu=$((  now + int_cpu  ))
 
 render() {
-    printf '%%{l} %s %%{c}%s  |  CPU %s%% %sGHz %s  |  RAM %sGB  |  WIFI %s  |  BAT %s\n' \
-        "$DESKTOPS" "$D" "$cpu_usage" "$cpu_ghz" "$T" "$R" "$W" "$B"
+    printf '%%{l} %s %%{c}%s  |  CPU %s%% %sGHz %s  |  RAM %sGB\n' \
+        "$DESKTOPS" "$D" "$cpu_usage" "$cpu_ghz" "$T" "$R"
 }
 
 # Confine the bar to the primary monitor, otherwise lemonbar spans the whole
@@ -192,8 +123,6 @@ trap 'kill 0; rm -f "$BAR_FIFO"' EXIT
         (( now >= next_ghz  )) && { read_ghz;  next_ghz=$((  now + int_ghz  )); }
         (( now >= next_ram  )) && { read_ram;  next_ram=$((  now + int_ram  )); }
         (( now >= next_temp )) && { read_temp; next_temp=$(( now + int_temp )); }
-        (( now >= next_wifi )) && { read_wifi; next_wifi=$(( now + int_wifi )); }
-        (( now >= next_bat  )) && { read_bat;  next_bat=$((  now + int_bat  )); }
         (( now >= next_date )) && { read_date; next_date=$(( now + int_date )); }
         render
     done
