@@ -5,36 +5,54 @@ set -euo pipefail
 LIMIT="${1:-10}"
 USER_NAME="${USER:-$(id -un)}"
 
-# Excluye procesos habituales de sesion/sistema aunque corran bajo tu usuario.
-EXCLUDE_REGEX="${RAM_EXCLUDE_REGEX:-^(systemd|dbus-daemon|dbus-broker|pipewire|pipewire-pulse|wireplumber|pulseaudio|gvfs.*|dconf-service|at-spi.*|gnome-keyring-daemon|xfce4-session|xfsettingsd|xfce4-power-manager|light-locker|NetworkManager|nm-applet|polkit-gnome-authentication-agent-1|blueman-applet|blueman-tray|ulauncher|xsettingsd|udiskie|picom|conky|copyq|redshift|xfce4-panel|Thunar|agetty|sd-pam|ssh-agent|ps|awk|bash|sh|zsh|fish|bwrap|codex)$}"
+# Excludes common session/system processes even if they run under your user.
+EXCLUDE_REGEX="${RAM_EXCLUDE_REGEX:-^(\(sd-pam\)|systemd.*|dbus-daemon|dbus-broker.*|pipewire.*|wireplumber|pulseaudio|gvfs.*|dconf-service|at-spi.*|gnome-keyring-daemon|xfce4-session|xfsettingsd|xfce4-power-manager|light-locker|NetworkManager|nm-applet|polkit-gnome-authentication-agent-1|blueman-applet|blueman-tray|ulauncher|xsettingsd|udiskie|picom|conky|copyq|redshift|xfce4-panel|Thunar|agetty|ssh-agent|Xorg|Xwayland|ps|awk|bash|sh|zsh|fish|bwrap|codex|chrome_crashpad|cpthost|xdg-open|sleep|startx)$}"
 
 if ! [[ "$LIMIT" =~ ^[0-9]+$ ]] || [[ "$LIMIT" -lt 1 ]]; then
-  echo "Uso: $0 [cantidad]" >&2
+  echo "Usage: $0 [count]" >&2
   exit 1
 fi
 
-printf "Procesos de %s con mayor uso de RAM (top %s)\n\n" "$USER_NAME" "$LIMIT"
-printf "%-8s %-10s %s\n" "PID" "RAM(MB)" "PROCESO"
+tmp_file="$(mktemp)"
+trap 'rm -f "$tmp_file"' EXIT
 
-ps -u "$USER_NAME" -o pid=,%mem=,rss=,comm=,args= --sort=-rss |
-awk -v limit="$LIMIT" -v exclude="$EXCLUDE_REGEX" '
-  BEGIN { shown = 0 }
+while read -r pid comm rss_kb; do
+  [[ -n "$pid" && -n "$comm" && -n "$rss_kb" ]] || continue
+
+  if [[ "$comm" =~ $EXCLUDE_REGEX ]]; then
+    continue
+  fi
+
+  mem_kb="$rss_kb"
+  if [[ -r "/proc/$pid/smaps_rollup" ]]; then
+    pss_kb="$(awk '/^Pss:/ { print $2; exit }' "/proc/$pid/smaps_rollup" 2>/dev/null || true)"
+    if [[ -n "${pss_kb:-}" ]]; then
+      mem_kb="$pss_kb"
+    fi
+  fi
+
+  printf "%s\t%s\t%s\n" "$pid" "$mem_kb" "$comm" >> "$tmp_file"
+done < <(ps -u "$USER_NAME" -o pid=,comm=,rss=)
+
+printf "%-8s %-10s %s\n" "PID" "RAM(MB)" "PROCESS"
+
+sort -t $'\t' -k2,2nr "$tmp_file" |
+awk -F '\t' -v limit="$LIMIT" '
   {
-    pid = $1
-    rss_kb = $3
-    comm = $4
-
-    if (comm ~ exclude) {
-      next
+    mem_by_comm[$3] += $2
+    if (!($3 in top_pid) || $2 > top_mem[$3]) {
+      top_mem[$3] = $2
+      top_pid[$3] = $1
     }
-
-    rss_mb = rss_kb / 1024
-
-    printf "%-8s %-10.1f %s\n", pid, rss_mb, comm
-    shown++
-
-    if (shown >= limit) {
-      exit
+  }
+  END {
+    for (comm in mem_by_comm) {
+      printf "%s\t%.1f\t%s\n", top_pid[comm], mem_by_comm[comm] / 1024, comm
     }
+  }
+' | sort -t $'\t' -k2,2nr |
+awk -F '\t' -v limit="$LIMIT" '
+  NR <= limit {
+    printf "%-8s %-10.1f %s\n", $1, $2, $3
   }
 '
