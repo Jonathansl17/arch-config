@@ -28,6 +28,7 @@ alias u='sudo pacman -Syu'
 alias s='git add . && git commit -m "Updates" && git push origin master'
 alias b='echo "$(cat /sys/class/power_supply/BAT1/capacity)% — $(cat /sys/class/power_supply/BAT1/status)"'
 alias d='date'
+alias ram='$HOME/bin/ram'
 alias x='d && b && t'
 
 export PATH="$HOME/.local/bin:$PATH"

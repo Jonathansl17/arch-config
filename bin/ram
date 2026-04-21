@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+LIMIT="${1:-10}"
+USER_NAME="${USER:-$(id -un)}"
+
+# Excluye procesos habituales de sesion/sistema aunque corran bajo tu usuario.
+EXCLUDE_REGEX="${RAM_EXCLUDE_REGEX:-^(systemd|dbus-daemon|dbus-broker|pipewire|pipewire-pulse|wireplumber|pulseaudio|gvfs.*|dconf-service|at-spi.*|gnome-keyring-daemon|xfce4-session|xfsettingsd|xfce4-power-manager|light-locker|NetworkManager|nm-applet|polkit-gnome-authentication-agent-1|blueman-applet|blueman-tray|ulauncher|xsettingsd|udiskie|picom|conky|copyq|redshift|xfce4-panel|Thunar|agetty|sd-pam|ssh-agent|ps|awk|bash|sh|zsh|fish|bwrap|codex)$}"
+
+if ! [[ "$LIMIT" =~ ^[0-9]+$ ]] || [[ "$LIMIT" -lt 1 ]]; then
+  echo "Uso: $0 [cantidad]" >&2
+  exit 1
+fi
+
+printf "Procesos de %s con mayor uso de RAM (top %s)\n\n" "$USER_NAME" "$LIMIT"
+printf "%-8s %-10s %s\n" "PID" "RAM(MB)" "PROCESO"
+
+ps -u "$USER_NAME" -o pid=,%mem=,rss=,comm=,args= --sort=-rss |
+awk -v limit="$LIMIT" -v exclude="$EXCLUDE_REGEX" '
+  BEGIN { shown = 0 }
+  {
+    pid = $1
+    rss_kb = $3
+    comm = $4
+
+    if (comm ~ exclude) {
+      next
+    }
+
+    rss_mb = rss_kb / 1024
+
+    printf "%-8s %-10.1f %s\n", pid, rss_mb, comm
+    shown++
+
+    if (shown >= limit) {
+      exit
+    }
+  }
+'
