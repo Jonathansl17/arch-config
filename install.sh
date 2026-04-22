@@ -18,7 +18,6 @@ die()  { printf '\033[1;31m!!\033[0m %s\n' "$*" >&2; exit 1; }
 # repo_relative_source  absolute_destination
 MAPPINGS=(
     "bspwm/bspwmrc            $HOME/.config/bspwm/bspwmrc"
-    "bspwm/monitor.sh         $HOME/.config/bspwm/monitor.sh"
     "sxhkd/sxhkdrc            $HOME/.config/sxhkd/sxhkdrc"
     "alacritty/alacritty.toml $HOME/.config/alacritty/alacritty.toml"
     "bash/bashrc              $HOME/.bashrc"
@@ -129,7 +128,6 @@ done
 
 # bspwm scripts, wifi.sh and local bin scripts must be executable
 chmod +x "$HOME/.config/bspwm/bspwmrc" 2>/dev/null || true
-chmod +x "$HOME/.config/bspwm/monitor.sh" 2>/dev/null || true
 chmod +x "$HOME/wifi/wifi.sh" 2>/dev/null || true
 chmod +x "$HOME/bin/alacritty-cwd" 2>/dev/null || true
 chmod +x "$HOME/bin/ram" 2>/dev/null || true
