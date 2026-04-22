@@ -18,6 +18,7 @@ die()  { printf '\033[1;31m!!\033[0m %s\n' "$*" >&2; exit 1; }
 # repo_relative_source  absolute_destination
 MAPPINGS=(
     "bspwm/bspwmrc            $HOME/.config/bspwm/bspwmrc"
+    "bspwm/monitor.sh         $HOME/.config/bspwm/monitor.sh"
     "sxhkd/sxhkdrc            $HOME/.config/sxhkd/sxhkdrc"
     "alacritty/alacritty.toml $HOME/.config/alacritty/alacritty.toml"
     "bash/bashrc              $HOME/.bashrc"
@@ -126,8 +127,9 @@ for entry in "${MAPPINGS[@]}"; do
     install_file $entry
 done
 
-# bspwmrc, wifi.sh and local bin scripts must be executable
+# bspwm scripts, wifi.sh and local bin scripts must be executable
 chmod +x "$HOME/.config/bspwm/bspwmrc" 2>/dev/null || true
+chmod +x "$HOME/.config/bspwm/monitor.sh" 2>/dev/null || true
 chmod +x "$HOME/wifi/wifi.sh" 2>/dev/null || true
 chmod +x "$HOME/bin/alacritty-cwd" 2>/dev/null || true
 chmod +x "$HOME/bin/ram" 2>/dev/null || true
@@ -168,9 +170,6 @@ cp "$REPO_DIR/lemonbar/bar.sh" \
    "$REPO_DIR/lemonbar/watcher.sh" \
    "$REPO_DIR/lemonbar/bspwm-desktops" /lemonbar/
 chmod +x /lemonbar/*.sh /lemonbar/bspwm-desktops
-
-say "Restarting lemonbar"
-setsid -f /lemonbar/watcher.sh </dev/null >/dev/null 2>&1
 
 # --- 4d. Build slock from source (custom config: all-black lock screen) ---
 say "Building slock from source"
@@ -217,6 +216,16 @@ if pgrep -x bspwm >/dev/null; then
     say "Reloading bspwm and sxhkd"
     bspc wm -r
     pkill -USR1 -x sxhkd 2>/dev/null || true
+
+    say "Restarting lemonbar"
+    pkill -f '/lemonbar/watcher.sh' 2>/dev/null || true
+    pkill -f '/lemonbar/bar.sh' 2>/dev/null || true
+    pkill -x bspwm-desktops 2>/dev/null || true
+    pkill -x lemonbar 2>/dev/null || true
+    rm -f /tmp/lemonbar-watcher.lock
+    setsid -f /lemonbar/watcher.sh </dev/null >/dev/null 2>&1
+else
+    warn "bspwm is not running; lemonbar will start on the next X session"
 fi
 
 say "Done. On a fresh machine: reboot so the enabled services start."
