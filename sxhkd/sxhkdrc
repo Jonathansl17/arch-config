@@ -110,6 +110,9 @@ super + d
 super + e
     pcmanfm
 
+super + p
+    postman
+
 # LOCK SCREEN (asks for password via PAM)
 super + l
     slock
