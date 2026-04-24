@@ -57,9 +57,15 @@ xournalpp() {
     done
     setsid -f /usr/bin/xournalpp "$@" >/dev/null 2>&1
 }
+
 libreoffice() {
     setsid -f /usr/bin/libreoffice "$@" >/dev/null 2>&1
 }
+
+evince() {
+    setsid -f /usr/bin/evince "$@" >/dev/null 2>&1
+}
+
 xp() {
     if [ $# -eq 0 ]; then
         echo "uso: xp archivo.xopp [archivo2.xopp ...]" >&2
@@ -67,6 +73,8 @@ xp() {
     fi
     for f in "$@"; do
         if [ ! -e "$f" ]; then
+
+
             echo "xp: no existe '$f'" >&2
             continue
         fi
