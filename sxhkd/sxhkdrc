@@ -221,3 +221,7 @@ super + F7
 super + F4
     wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle
 
+
+# OBS
+super + o
+    obs
