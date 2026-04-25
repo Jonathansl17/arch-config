@@ -23,7 +23,7 @@ alias obs="setsid -f obs >/dev/null 2>&1"
 alias what="setsid -f /opt/brave-bin/brave --profile-directory=Default --app-id=hnpfjngllnobngcgfapefoaidbinmjnm >/dev/null 2>&1"
 alias spot="setsid -f /opt/brave-bin/brave --profile-directory=Default --app-id=pjibgclleladliembfgfagdaldikeohf >/dev/null 2>&1"
 alias o="sudo systemctl poweroff -i"
-alias u='sudo pacman -Syu'
+alias u='sudo pacman -Syu && yay -Syu'
 #alias s='git add . && MSG=$(git diff --cached | claude -p "Generate a concise commit message in English for these changes. Respond ONLY with the commit message itself, in English. Do NOT add any author, co-author, signature, attribution, trailers, or mention of Claude/Anthropic/AI.") && git commit -m "$MSG" && git push'
 alias s='git add . && git commit -m "Updates" && git push origin master'
 alias b='echo "$(cat /sys/class/power_supply/BAT1/capacity)% — $(cat /sys/class/power_supply/BAT1/status)"'
