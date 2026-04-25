@@ -5,5 +5,4 @@
 
 NetworkManager.service
 bluetooth.service
-sshd.service
 ufw.service

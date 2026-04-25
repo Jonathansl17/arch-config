@@ -58,6 +58,7 @@ rxvt-unicode
 
 # --- Fonts ---
 ttf-jetbrains-mono
+ttf-jetbrains-mono-nerd
 ttf-dejavu
 ttf-liberation
 noto-fonts
@@ -66,15 +67,17 @@ xorg-fonts-misc
 # --- File managers and utilities ---
 pcmanfm
 gvfs
+gvfs-mtp
+mtpfs
 file-roller
 xdg-utils
 xdo
 xdotool
+xclip
 
 # --- Screenshot (Print -> maim -s | clipcopy) ---
 maim
 slop
-gtk3
 
 # --- Apps ---
 libreoffice-fresh
@@ -116,6 +119,10 @@ pahole
 # --- Power / hardware monitoring ---
 power-profiles-daemon
 smartmontools
+
+# --- Network / security tooling ---
+nmap
+openbsd-netcat
 
 # --- Fun / eye candy ---
 cmatrix

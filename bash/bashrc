@@ -192,3 +192,4 @@ case ":$PATH:" in
   *) export PATH="$PNPM_HOME:$PATH" ;;
 esac
 # pnpm end
+export CHROME_BIN=/usr/bin/brave

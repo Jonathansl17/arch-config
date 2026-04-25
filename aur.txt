@@ -11,6 +11,7 @@
 android-sdk-cmdline-tools-latest
 brave-bin
 intellij-idea-ultimate-edition
+k6
 ngrok
 pgadmin4-desktop-bin
 pnpm-bin
