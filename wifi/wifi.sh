@@ -34,30 +34,38 @@ read -rp "Choose an option [1/2/3/4]: " option
 
 case "$option" in
   1)
-    echo ""
-    echo -e "${YELLOW}Scanning available networks...${NC}"
-    mapfile -t networks < <(nmcli -t -f SSID,SIGNAL,SECURITY device wifi list | grep -v '^:' | sort -t: -k2 -rn | awk -F: '!seen[$1]++')
+    while true; do
+      echo ""
+      echo -e "${YELLOW}Scanning available networks...${NC}"
+      nmcli device wifi rescan >/dev/null 2>&1
+      mapfile -t networks < <(nmcli -t -f SSID,SIGNAL,SECURITY device wifi list | grep -v '^:' | sort -t: -k2 -rn | awk -F: '!seen[$1]++')
 
-    if [[ ${#networks[@]} -eq 0 ]]; then
-      echo -e "${RED}No networks found.${NC}"
-      exit 1
-    fi
+      if [[ ${#networks[@]} -eq 0 ]]; then
+        echo -e "${RED}No networks found.${NC}"
+        exit 1
+      fi
 
-    echo ""
-    echo -e "${CYAN}Available networks:${NC}"
-    echo ""
-    for i in "${!networks[@]}"; do
-      IFS=: read -r ssid signal security <<< "${networks[$i]}"
-      printf "  %d) %-30s Signal: %s%%  Security: %s\n" $((i+1)) "$ssid" "$signal" "${security:-Open}"
+      echo ""
+      echo -e "${CYAN}Available networks:${NC}"
+      echo ""
+      for i in "${!networks[@]}"; do
+        IFS=: read -r ssid signal security <<< "${networks[$i]}"
+        printf "  %d) %-30s Signal: %s%%  Security: %s\n" $((i+1)) "$ssid" "$signal" "${security:-Open}"
+      done
+
+      echo ""
+      read -rp "Select a network [1-${#networks[@]}, 0=rescan]: " net_choice
+
+      if [[ "$net_choice" == "0" ]]; then
+        clear
+        continue
+      fi
+      if [[ -z "$net_choice" ]] || ! [[ "$net_choice" =~ ^[0-9]+$ ]] || [[ "$net_choice" -lt 1 ]] || [[ "$net_choice" -gt ${#networks[@]} ]]; then
+        echo -e "${RED}Invalid selection.${NC}"
+        exit 1
+      fi
+      break
     done
-
-    echo ""
-    read -rp "Select a network [1-${#networks[@]}]: " net_choice
-
-    if [[ -z "$net_choice" ]] || [[ "$net_choice" -lt 1 ]] || [[ "$net_choice" -gt ${#networks[@]} ]]; then
-      echo -e "${RED}Invalid selection.${NC}"
-      exit 1
-    fi
 
     IFS=: read -r ssid signal security <<< "${networks[$((net_choice-1))]}"
 
