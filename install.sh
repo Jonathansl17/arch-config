@@ -24,7 +24,6 @@ MAPPINGS=(
     "bash/bash_profile        $HOME/.bash_profile"
     "xinit/xinitrc            $HOME/.xinitrc"
     "templates/template.xopp  $HOME/templates/template.xopp"
-    "wifi/wifi.sh             $HOME/wifi/wifi.sh"
     "bin/alacritty-cwd        $HOME/bin/alacritty-cwd"
     "bin/ram                  $HOME/bin/ram"
     "nvim/init.lua            $HOME/.config/nvim/init.lua"
@@ -126,9 +125,8 @@ for entry in "${MAPPINGS[@]}"; do
     install_file $entry
 done
 
-# bspwm scripts, wifi.sh and local bin scripts must be executable
+# bspwm scripts and local bin scripts must be executable
 chmod +x "$HOME/.config/bspwm/bspwmrc" 2>/dev/null || true
-chmod +x "$HOME/wifi/wifi.sh" 2>/dev/null || true
 chmod +x "$HOME/bin/alacritty-cwd" 2>/dev/null || true
 chmod +x "$HOME/bin/ram" 2>/dev/null || true
 
@@ -138,6 +136,15 @@ mkdir -p "$HOME/bin"
 gcc -O2 -o "$HOME/bin/clipcopy" "$REPO_DIR/bin/clipcopy.c" \
     $(pkg-config --cflags --libs gtk+-3.0)
 say "installed: ~/bin/clipcopy"
+
+# --- 4b-bis. Deploy /wifi script (interactive WiFi/LAN manager) ---
+say "Deploying /wifi script"
+if [[ ! -d /wifi ]]; then
+    sudo mkdir -p /wifi
+fi
+sudo chown "$USER:$USER" /wifi
+cp "$REPO_DIR/wifi/wifi.sh" /wifi/wifi.sh
+chmod +x /wifi/wifi.sh
 
 # --- 4c. Install lemonbar + /lemonbar scripts (custom status bar) ---
 say "Installing lemonbar-xft-git (forces CC=gcc; clang fails with -march)"
