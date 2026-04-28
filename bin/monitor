@@ -106,7 +106,12 @@ cmd_off() {
             bspc node "$n" -d 1 >/dev/null 2>&1 || true
         done
     done
+    # transfer external desktops to PRIMARY so they don't ghost after xrandr --off
+    for d in $(bspc query -D -m "$ext" --names 2>/dev/null); do
+        bspc desktop "$d" --to-monitor "$PRIMARY" 2>/dev/null || true
+    done
     xrandr --output "$ext" --off
+    bspc monitor "$ext" --remove 2>/dev/null || true
     bspc monitor "$PRIMARY" -d 1 2 3 4 5 6 7 8 9 10 2>/dev/null || true
     pkill -x lemonbar 2>/dev/null || true
 }
