@@ -33,9 +33,6 @@ alias x='d && b && t'
 
 export PATH="$HOME/.local/bin:$PATH"
 
-# Bash completion (includes completion after sudo)
-[ -r /usr/share/bash-completion/bash_completion ] && . /usr/share/bash-completion/bash_completion
-
 # === Android / Java toolchain ===
 export JAVA_HOME=/usr/lib/jvm/java-21-openjdk
 export ANDROID_HOME=/opt/android-sdk
@@ -102,12 +99,19 @@ t() {
     sensors k10temp-pci-00c3 | awk '/^Tctl:/ {print "CPU: " $2}'
 }
 
-# === nvm (Node Version Manager) ===
-# nvm is cloned to ~/.nvm by install.sh. If the directory isn't there,
-# the two lines below are no-ops and the shell starts normally.
+# === nvm (Node Version Manager) — lazy load ===
+# Stubs cargan nvm/node/npm/npx/corepack on-demand. Ahorra ~48ms por shell.
 export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+_nvm_load() {
+    unset -f nvm node npm npx corepack
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+    [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+}
+nvm()      { _nvm_load; nvm "$@"; }
+node()     { _nvm_load; node "$@"; }
+npm()      { _nvm_load; npm "$@"; }
+npx()      { _nvm_load; npx "$@"; }
+corepack() { _nvm_load; corepack "$@"; }
 
 # === local overrides (NOT VERSIONED) ===
 # ~/.bashrc.local is for aliases/variables with credentials, tokens
@@ -117,10 +121,10 @@ export NVM_DIR="$HOME/.nvm"
 
 # === termclip configuration ===
 # Terminal clipboard utilities (c, v, cc)
-# Added automatically on Fri Apr 17 11:31:18 AM CST 2026
-export PATH="$HOME/bin:$PATH"
-#This is the bash configuration file for my custom scripts
-export PATH="$HOME/bin:$PATH"
+case ":$PATH:" in
+  *":$HOME/bin:"*) ;;
+  *) export PATH="$HOME/bin:$PATH" ;;
+esac
 
 #Copy a file to clipboard from terminal
 c() {
