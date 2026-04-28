@@ -1,0 +1,134 @@
+#!/bin/bash
+# monitor: position external (HDMI/DP) relative to eDP. Idempotent, one-shot.
+# Usage: monitor -r | -a | --off | --status
+set -eu
+
+PRIMARY="eDP"
+
+usage() {
+    cat <<EOF
+monitor -r        external to the right of $PRIMARY
+monitor -l        external to the left of $PRIMARY
+monitor --off     turn external off
+monitor --status  show current state
+EOF
+    exit "${1:-0}"
+}
+
+[ $# -eq 1 ] || usage 1
+
+detect_external() {
+    xrandr --query | awk '
+        /^(HDMI-[0-9-]+|DisplayPort-[0-9]+|DP-[0-9-]+) connected/ {print $1; exit}
+    '
+}
+
+get_pos() {
+    # print "WxH+X+Y" of monitor $1, empty if off
+    xrandr --query | awk -v m="$1" '
+        $1==m && $2=="connected" {
+            for (i=3;i<=NF;i++) if ($i ~ /^[0-9]+x[0-9]+\+[-0-9]+\+[-0-9]+$/) {print $i; exit}
+        }'
+}
+
+is_active() { [ -n "$(get_pos "$1")" ]; }
+
+best_mode_rate() {
+    # print "MODE RATE" preferred for monitor $1
+    local m=$1 line mode rate
+    line=$(xrandr | sed -n "/^$m connected/,/^[^ ]/{/^ /p}" | head -1)
+    mode=$(echo "$line" | awk '{print $1}')
+    rate=$(echo "$line" | grep -oP '[0-9]+\.[0-9]+' | sort -t. -k1,1nr -k2,2nr | head -1)
+    echo "$mode $rate"
+}
+
+apply_layout() {
+    # $1 = xrandr position flag (--right-of | --left-of)
+    local pos=$1 ext mode rate cur primary_pos pw ph ew
+    ext=$(detect_external) || true
+    if [ -z "${ext:-}" ]; then
+        echo "no external connected" >&2
+        exit 2
+    fi
+
+    read -r mode rate <<EOF
+$(best_mode_rate "$ext")
+EOF
+
+    primary_pos=$(get_pos "$PRIMARY")
+    pw=${primary_pos%%x*}
+    ph=${primary_pos#*x}; ph=${ph%%+*}
+    ew=${mode%x*}
+
+    cur=$(get_pos "$ext" || true)
+
+    # idempotent: bail if already in desired layout
+    case "$pos" in
+        --right-of)
+            if [ "$cur" = "${mode}+${pw}+0" ] && [ "$primary_pos" = "${pw}x${ph}+0+0" ]; then
+                echo "already --right-of, no-op"
+                return
+            fi
+            ;;
+        --left-of)
+            if [ "$cur" = "${mode}+0+0" ] && [ "$primary_pos" = "${pw}x${ph}+${ew}+0" ]; then
+                echo "already --left-of, no-op"
+                return
+            fi
+            ;;
+    esac
+
+    xrandr --output "$PRIMARY" --primary --auto \
+           --output "$ext" "$pos" "$PRIMARY" \
+           --mode "$mode" ${rate:+--rate "$rate"}
+
+    # set bspc desktops only if they differ
+    local cur_edp cur_ext
+    cur_edp=$(bspc query -D -m "$PRIMARY" --names 2>/dev/null | tr '\n' ' ' | xargs)
+    cur_ext=$(bspc query -D -m "$ext" --names 2>/dev/null | tr '\n' ' ' | xargs)
+    [ "$cur_edp" = "1 2 3 4 5" ] || bspc monitor "$PRIMARY" -d 1 2 3 4 5
+    [ "$cur_ext" = "6 7 8 9 10" ] || bspc monitor "$ext" -d 6 7 8 9 10
+
+    # bar.sh caches BAR_GEOM at launch; kill so watcher respawns with new geom.
+    pkill -x lemonbar 2>/dev/null || true
+}
+
+cmd_off() {
+    local ext
+    ext=$(detect_external) || true
+    if [ -z "${ext:-}" ] || ! is_active "$ext"; then
+        echo "external already off, no-op"
+        return
+    fi
+    # move windows from desktops 6-10 to desktop 1 before turning off
+    for d in 6 7 8 9 10; do
+        for n in $(bspc query -N -d "$d" 2>/dev/null); do
+            bspc node "$n" -d 1 >/dev/null 2>&1 || true
+        done
+    done
+    xrandr --output "$ext" --off
+    bspc monitor "$PRIMARY" -d 1 2 3 4 5 6 7 8 9 10 2>/dev/null || true
+    pkill -x lemonbar 2>/dev/null || true
+}
+
+cmd_status() {
+    echo "primary: $PRIMARY $(get_pos "$PRIMARY")"
+    local ext
+    ext=$(detect_external) || true
+    if [ -n "${ext:-}" ]; then
+        local p; p=$(get_pos "$ext")
+        echo "external: $ext ${p:-off}"
+    else
+        echo "external: none connected"
+    fi
+    echo "bspc monitors: $(bspc query -M --names | tr '\n' ' ')"
+}
+
+case "$1" in
+    -r)        apply_layout --right-of ;;
+    -l)        apply_layout --left-of ;;
+    --off)     cmd_off ;;
+    --status)  cmd_status ;;
+    -h|--help) usage 0 ;;
+    *)         usage 1 ;;
+esac

@@ -26,6 +26,7 @@ MAPPINGS=(
     "templates/template.xopp  $HOME/templates/template.xopp"
     "bin/alacritty-cwd        $HOME/bin/alacritty-cwd"
     "bin/ram                  $HOME/bin/ram"
+    "bin/monitor              $HOME/bin/monitor"
     "nvim/init.lua            $HOME/.config/nvim/init.lua"
     "nvim/ideavimrc           $HOME/.ideavimrc"
 )
@@ -129,6 +130,7 @@ done
 chmod +x "$HOME/.config/bspwm/bspwmrc" 2>/dev/null || true
 chmod +x "$HOME/bin/alacritty-cwd" 2>/dev/null || true
 chmod +x "$HOME/bin/ram" 2>/dev/null || true
+chmod +x "$HOME/bin/monitor" 2>/dev/null || true
 
 # --- 4b. Build clipcopy (multi-target clipboard for screenshots) ---
 say "Building clipcopy"
