@@ -204,6 +204,19 @@ say "Installing sysctl configs"
 sudo cp "$REPO_DIR/sysctl/99-swappiness.conf" /etc/sysctl.d/99-swappiness.conf
 sudo sysctl --system >/dev/null 2>&1
 
+# --- 4g. ufw firewall (default deny inbound, allow outbound) ---
+say "Configuring ufw"
+if command -v ufw >/dev/null 2>&1; then
+    sudo ufw default deny incoming  >/dev/null
+    sudo ufw default allow outgoing >/dev/null
+    if ! sudo ufw status | grep -q '^Status: active'; then
+        sudo ufw --force enable >/dev/null
+    fi
+    sudo systemctl enable ufw.service >/dev/null 2>&1 || true
+else
+    warn "ufw not installed; skipping firewall config"
+fi
+
 # --- 5. systemd services ---
 say "Enabling systemd services (services.txt)"
 services=$(read_pkglist "$REPO_DIR/services.txt")

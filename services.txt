@@ -4,5 +4,3 @@
 # `enable` is idempotent and leaves live processes alone.)
 
 NetworkManager.service
-bluetooth.service
-ufw.service
