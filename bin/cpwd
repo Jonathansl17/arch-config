@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+target="${1:-$(pwd)}"
+pkill -f "$HOME/bin/cpwd.py" 2>/dev/null
+"$HOME/bin/cpwd.py" "$target" >/dev/null 2>&1 & disown
+echo "Path copied to clipboard:"
+echo "   $target"

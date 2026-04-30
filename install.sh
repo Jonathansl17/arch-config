@@ -27,6 +27,15 @@ MAPPINGS=(
     "bin/alacritty-cwd        $HOME/bin/alacritty-cwd"
     "bin/ram                  $HOME/bin/ram"
     "bin/monitor              $HOME/bin/monitor"
+    "bin/t                    $HOME/bin/t"
+    "bin/ws                   $HOME/bin/ws"
+    "bin/vm                   $HOME/bin/vm"
+    "bin/xp                   $HOME/bin/xp"
+    "bin/xpc                  $HOME/bin/xpc"
+    "bin/c                    $HOME/bin/c"
+    "bin/cc                   $HOME/bin/cc"
+    "bin/cpwd                 $HOME/bin/cpwd"
+    "bin/v                    $HOME/bin/v"
     "nvim/init.lua            $HOME/.config/nvim/init.lua"
     "nvim/ideavimrc           $HOME/.ideavimrc"
 )
@@ -131,6 +140,9 @@ chmod +x "$HOME/.config/bspwm/bspwmrc" 2>/dev/null || true
 chmod +x "$HOME/bin/alacritty-cwd" 2>/dev/null || true
 chmod +x "$HOME/bin/ram" 2>/dev/null || true
 chmod +x "$HOME/bin/monitor" 2>/dev/null || true
+for s in t ws vm xp xpc c cc cpwd v; do
+    chmod +x "$HOME/bin/$s" 2>/dev/null || true
+done
 
 # --- 4b. Build clipcopy (multi-target clipboard for screenshots) ---
 say "Building clipcopy"

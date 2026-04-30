@@ -1,0 +1,9 @@
+#!/bin/bash
+sink_info=$(wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null)
+src_info=$(wpctl get-volume @DEFAULT_AUDIO_SOURCE@ 2>/dev/null)
+vol=$(awk '{printf "%d", $2*100}' <<<"$sink_info")
+mic=$(awk '{printf "%d", $2*100}' <<<"$src_info")
+smuted=""; mmuted=""
+grep -q MUTED <<<"$sink_info" && smuted=" (muted)"
+grep -q MUTED <<<"$src_info" && mmuted=" (muted)"
+echo "Volume: ${vol}%${smuted} — Mic: ${mic}%${mmuted}"

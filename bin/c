@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+if [ $# -lt 1 ]; then
+    echo "Usage: c file1 file2 ..."
+    exit 1
+fi
+pkill -f "$HOME/bin/c.py" 2>/dev/null
+"$HOME/bin/c.py" "$@" >/dev/null 2>&1 & disown
+echo "Files copied to clipboard:"
+for f in "$@"; do
+    echo "   $f"
+done

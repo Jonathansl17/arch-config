@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+output=$("$HOME/bin/v.py" "$@")
+if [ $? -ne 0 ]; then
+    echo "No files found in clipboard."
+    exit 1
+fi
+echo "Files pasted from clipboard:"
+for f in $output; do
+    echo "   $f"
+done

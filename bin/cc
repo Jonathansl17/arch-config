@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+if [ $# -lt 1 ]; then
+    echo "Usage: cc file"
+    exit 1
+fi
+pkill -f "$HOME/bin/cc.py" 2>/dev/null
+"$HOME/bin/cc.py" "$1" >/dev/null 2>&1 & disown
+echo "Content copied to clipboard from:"
+echo "   $1"

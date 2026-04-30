@@ -1,0 +1,20 @@
+#!/bin/bash
+if [ $# -eq 0 ]; then
+    echo "uso: xpc archivo.xopp [archivo2.xopp ...]" >&2
+    exit 1
+fi
+pdfs=()
+for f in "$@"; do
+    if [ ! -e "$f" ]; then
+        echo "xpc: no existe '$f'" >&2
+        continue
+    fi
+    pdf="${f%.*}.pdf"
+    /usr/bin/xournalpp --create-pdf "$pdf" "$f" && pdfs+=("$pdf")
+done
+if [ ${#pdfs[@]} -gt 0 ]; then
+    pkill -f "$HOME/bin/c.py" 2>/dev/null
+    "$HOME/bin/c.py" "${pdfs[@]}" >/dev/null 2>&1 & disown
+    echo "Files copied to clipboard:"
+    printf '   %s\n' "${pdfs[@]}"
+fi

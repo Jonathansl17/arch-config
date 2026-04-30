@@ -1,0 +1,2 @@
+#!/bin/bash
+sensors k10temp-pci-00c3 | awk '/^Tctl:/ {print "CPU: " $2}'
