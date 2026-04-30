@@ -123,7 +123,7 @@ trap 'kill 0; rm -f "$BAR_FIFO"' EXIT
         (( now >= next_ghz  )) && { read_ghz;  next_ghz=$((  now + int_ghz  )); }
         (( now >= next_ram  )) && { read_ram;  next_ram=$((  now + int_ram  )); }
         (( now >= next_temp )) && { read_temp; next_temp=$(( now + int_temp )); }
-        (( now >= next_date )) && { read_date; next_date=$(( now + int_date )); }
+        (( now >= next_date )) && { read_date; next_date=$(( now - now % int_date + int_date )); }
         render
     done
 } | lemonbar -p -d -g "$BAR_GEOM" -B "#CC000000" -F "#FFFFFFFF" -f "monospace:size=12"
