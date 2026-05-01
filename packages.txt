@@ -71,6 +71,7 @@ gvfs-mtp
 mtpfs
 file-roller
 xdg-utils
+xdg-user-dirs
 xdo
 xdotool
 xclip
@@ -93,13 +94,18 @@ freerdp
 git
 github-cli
 cmake
+clang
+gdb
 docker
 docker-compose
 jdk21-openjdk
 nodejs
+npm
 postgresql
 python-pyqt5
+python-pipx
 rust
+tk
 android-tools
 
 # --- Shell / CLI utilities ---
@@ -115,6 +121,7 @@ luajit
 pacman-contrib
 dosfstools
 pahole
+tree
 
 # --- Power / hardware monitoring ---
 power-profiles-daemon
@@ -123,6 +130,12 @@ smartmontools
 # --- Network / security tooling ---
 nmap
 openbsd-netcat
+
+# --- TeX Live ---
+texlive-basic
+texlive-latexrecommended
+texlive-latexextra
+texlive-langspanish
 
 # --- Fun / eye candy ---
 cmatrix
