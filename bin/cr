@@ -3,7 +3,10 @@
 set -euo pipefail
 
 LIMIT="${1:-10}"
+INTERVAL="${CR_INTERVAL:-0.5}"
 USER_NAME="${USER:-$(id -un)}"
+NCPU="$(nproc)"
+CLK_TCK="$(getconf CLK_TCK)"
 
 EXCLUDE_REGEX="${RAM_EXCLUDE_REGEX:-^(\(sd-pam\)|systemd.*|dbus-daemon|dbus-broker.*|pipewire.*|wireplumber|pulseaudio|gvfs.*|dconf-service|at-spi.*|gnome-keyring-daemon|xfce4-session|xfsettingsd|xfce4-power-manager|light-locker|NetworkManager|nm-applet|polkit-gnome-authentication-agent-1|blueman-applet|blueman-tray|ulauncher|xsettingsd|udiskie|picom|conky|copyq|redshift|xfce4-panel|Thunar|agetty|ssh-agent|Xorg|Xwayland|ps|awk|bash|sh|zsh|fish|bwrap|codex|chrome_crashpad|cpthost|xdg-open|sleep|startx)$}"
 
@@ -12,17 +15,44 @@ if ! [[ "$LIMIT" =~ ^[0-9]+$ ]] || [[ "$LIMIT" -lt 1 ]]; then
   exit 1
 fi
 
-# ---------- Top processes ----------
-tmp_file="$(mktemp)"
-trap 'rm -f "$tmp_file"' EXIT
+snap1="$(mktemp)"
+snap2="$(mktemp)"
+meta="$(mktemp)"
+trap 'rm -f "$snap1" "$snap2" "$meta"' EXIT
 
-while read -r pid pcpu rss_kb comm; do
+# Snapshot 1: pid, comm, rss_kb, jiffies (utime+stime)
+sample_cpu() {
+  local out="$1"
+  : > "$out"
+  while read -r pid comm rss_kb; do
+    [[ -n "$pid" && -n "$comm" ]] || continue
+    if [[ "$comm" =~ $EXCLUDE_REGEX ]]; then
+      continue
+    fi
+    [[ -r "/proc/$pid/stat" ]] || continue
+    # /proc/[pid]/stat: comm in field 2 may contain spaces & parens.
+    # Strip to last ')' to skip comm safely.
+    local raw
+    raw="$(< "/proc/$pid/stat")" || continue
+    local rest="${raw##*) }"
+    # rest fields: state(1) ppid(2) pgrp(3) session(4) tty(5) tpgid(6) flags(7) minflt(8) cminflt(9) majflt(10) cmajflt(11) utime(12) stime(13)
+    # so utime = field 12, stime = field 13 of rest
+    local f
+    read -r -a f <<< "$rest"
+    local utime="${f[11]:-0}"
+    local stime="${f[12]:-0}"
+    local jiff=$(( utime + stime ))
+    printf "%s\t%s\n" "$pid" "$jiff" >> "$out"
+  done < <(ps -u "$USER_NAME" -o pid=,comm=,rss=)
+}
+
+# Capture pid -> comm, rss once (for display)
+: > "$meta"
+while read -r pid comm rss_kb; do
   [[ -n "$pid" && -n "$comm" && -n "$rss_kb" ]] || continue
-
   if [[ "$comm" =~ $EXCLUDE_REGEX ]]; then
     continue
   fi
-
   mem_kb="$rss_kb"
   if [[ -r "/proc/$pid/smaps_rollup" ]]; then
     pss_kb="$(awk '/^Pss:/ { print $2; exit }' "/proc/$pid/smaps_rollup" 2>/dev/null || true)"
@@ -30,30 +60,51 @@ while read -r pid pcpu rss_kb comm; do
       mem_kb="$pss_kb"
     fi
   fi
+  printf "%s\t%s\t%s\n" "$pid" "$mem_kb" "$comm" >> "$meta"
+done < <(ps -u "$USER_NAME" -o pid=,comm=,rss=)
 
-  printf "%s\t%s\t%s\t%s\n" "$pid" "$mem_kb" "$pcpu" "$comm" >> "$tmp_file"
-done < <(ps -u "$USER_NAME" -o pid=,%cpu=,rss=,comm=)
+sample_cpu "$snap1"
+sleep "$INTERVAL"
+sample_cpu "$snap2"
 
 printf "%-8s %-10s %-7s %s\n" "PID" "RAM(MB)" "CPU%" "PROCESS"
 
-awk -F '\t' '
-  {
-    mem_by_comm[$4] += $2
-    cpu_by_comm[$4] += $3
-    if (!($4 in top_pid) || $2 > top_mem[$4]) {
-      top_mem[$4] = $2
-      top_pid[$4] = $1
-    }
-  }
+# Join: meta(pid mem comm) + snap1(pid jiff1) + snap2(pid jiff2)
+# Compute delta cpu% normalized to system: (dj / clk_tck) / interval / ncpu * 100
+awk -F '\t' \
+  -v clk="$CLK_TCK" -v iv="$INTERVAL" -v ncpu="$NCPU" -v limit="$LIMIT" '
+  FNR == NR && FILENAME == ARGV[1] { mem[$1]=$2; comm[$1]=$3; next }
+  FILENAME == ARGV[2] { j1[$1]=$2; next }
+  FILENAME == ARGV[3] { j2[$1]=$2; next }
   END {
-    for (comm in mem_by_comm) {
-      printf "%s\t%.1f\t%.1f\t%s\n", top_pid[comm], mem_by_comm[comm]/1024, cpu_by_comm[comm], comm
+    for (pid in mem) {
+      if (!(pid in j1) || !(pid in j2)) continue
+      dj = j2[pid] - j1[pid]
+      if (dj < 0) dj = 0
+      cpu = (dj / clk) / iv / ncpu * 100
+      c = comm[pid]
+      mem_by_comm[c] += mem[pid]
+      cpu_by_comm[c] += cpu
+      if (!(c in top_pid) || mem[pid] > top_mem[c]) {
+        top_mem[c] = mem[pid]
+        top_pid[c] = pid
+      }
+    }
+    n = 0
+    for (c in mem_by_comm) {
+      n++
+      rows[n] = sprintf("%s\t%.1f\t%.1f\t%s", top_pid[c], mem_by_comm[c]/1024, cpu_by_comm[c], c)
+    }
+    # sort rows by RAM desc
+    for (i=1; i<=n; i++) {
+      for (k=i+1; k<=n; k++) {
+        split(rows[i], a, "\t"); split(rows[k], b, "\t")
+        if (b[2]+0 > a[2]+0) { tmp=rows[i]; rows[i]=rows[k]; rows[k]=tmp }
+      }
+    }
+    for (i=1; i<=n && i<=limit; i++) {
+      split(rows[i], a, "\t")
+      printf "%-8s %-10.1f %-7.1f %s\n", a[1], a[2], a[3], a[4]
     }
   }
-' "$tmp_file" |
-sort -t $'\t' -k2,2nr |
-awk -F '\t' -v limit="$LIMIT" '
-  NR <= limit {
-    printf "%-8s %-10.1f %-7.1f %s\n", $1, $2, $3, $4
-  }
-'
+' "$meta" "$snap1" "$snap2"
