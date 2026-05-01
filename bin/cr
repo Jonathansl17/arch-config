@@ -5,7 +5,6 @@ set -euo pipefail
 LIMIT="${1:-10}"
 USER_NAME="${USER:-$(id -un)}"
 
-# Excludes common session/system processes even if they run under your user.
 EXCLUDE_REGEX="${RAM_EXCLUDE_REGEX:-^(\(sd-pam\)|systemd.*|dbus-daemon|dbus-broker.*|pipewire.*|wireplumber|pulseaudio|gvfs.*|dconf-service|at-spi.*|gnome-keyring-daemon|xfce4-session|xfsettingsd|xfce4-power-manager|light-locker|NetworkManager|nm-applet|polkit-gnome-authentication-agent-1|blueman-applet|blueman-tray|ulauncher|xsettingsd|udiskie|picom|conky|copyq|redshift|xfce4-panel|Thunar|agetty|ssh-agent|Xorg|Xwayland|ps|awk|bash|sh|zsh|fish|bwrap|codex|chrome_crashpad|cpthost|xdg-open|sleep|startx)$}"
 
 if ! [[ "$LIMIT" =~ ^[0-9]+$ ]] || [[ "$LIMIT" -lt 1 ]]; then
@@ -13,10 +12,11 @@ if ! [[ "$LIMIT" =~ ^[0-9]+$ ]] || [[ "$LIMIT" -lt 1 ]]; then
   exit 1
 fi
 
+# ---------- Top processes ----------
 tmp_file="$(mktemp)"
 trap 'rm -f "$tmp_file"' EXIT
 
-while read -r pid comm rss_kb; do
+while read -r pid pcpu rss_kb comm; do
   [[ -n "$pid" && -n "$comm" && -n "$rss_kb" ]] || continue
 
   if [[ "$comm" =~ $EXCLUDE_REGEX ]]; then
@@ -31,28 +31,29 @@ while read -r pid comm rss_kb; do
     fi
   fi
 
-  printf "%s\t%s\t%s\n" "$pid" "$mem_kb" "$comm" >> "$tmp_file"
-done < <(ps -u "$USER_NAME" -o pid=,comm=,rss=)
+  printf "%s\t%s\t%s\t%s\n" "$pid" "$mem_kb" "$pcpu" "$comm" >> "$tmp_file"
+done < <(ps -u "$USER_NAME" -o pid=,%cpu=,rss=,comm=)
 
-printf "%-8s %-10s %s\n" "PID" "RAM(MB)" "PROCESS"
+printf "%-8s %-10s %-7s %s\n" "PID" "RAM(MB)" "CPU%" "PROCESS"
 
-sort -t $'\t' -k2,2nr "$tmp_file" |
-awk -F '\t' -v limit="$LIMIT" '
+awk -F '\t' '
   {
-    mem_by_comm[$3] += $2
-    if (!($3 in top_pid) || $2 > top_mem[$3]) {
-      top_mem[$3] = $2
-      top_pid[$3] = $1
+    mem_by_comm[$4] += $2
+    cpu_by_comm[$4] += $3
+    if (!($4 in top_pid) || $2 > top_mem[$4]) {
+      top_mem[$4] = $2
+      top_pid[$4] = $1
     }
   }
   END {
     for (comm in mem_by_comm) {
-      printf "%s\t%.1f\t%s\n", top_pid[comm], mem_by_comm[comm] / 1024, comm
+      printf "%s\t%.1f\t%.1f\t%s\n", top_pid[comm], mem_by_comm[comm]/1024, cpu_by_comm[comm], comm
     }
   }
-' | sort -t $'\t' -k2,2nr |
+' "$tmp_file" |
+sort -t $'\t' -k2,2nr |
 awk -F '\t' -v limit="$LIMIT" '
   NR <= limit {
-    printf "%-8s %-10.1f %s\n", $1, $2, $3
+    printf "%-8s %-10.1f %-7.1f %s\n", $1, $2, $3, $4
   }
 '
