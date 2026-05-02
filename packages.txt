@@ -123,6 +123,7 @@ pacman-contrib
 dosfstools
 pahole
 tree
+perl-image-exiftool
 
 # --- Power / hardware monitoring ---
 power-profiles-daemon
