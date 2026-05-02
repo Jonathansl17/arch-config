@@ -30,6 +30,7 @@ alias b='echo "$(cat /sys/class/power_supply/BAT1/capacity)% — $(cat /sys/clas
 alias d='date'
 alias ram='$HOME/bin/ram'
 alias x='d && b && t'
+alias feh='feh -F'
 
 export PATH="$HOME/.local/bin:$PATH"
 

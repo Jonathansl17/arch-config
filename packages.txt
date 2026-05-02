@@ -85,6 +85,7 @@ libreoffice-fresh
 evince
 xournalpp
 mpv
+feh
 obs-studio
 telegram-desktop
 discord
