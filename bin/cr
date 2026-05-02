@@ -4,11 +4,8 @@ set -euo pipefail
 
 LIMIT="${1:-10}"
 INTERVAL="${CR_INTERVAL:-0.5}"
-USER_NAME="${USER:-$(id -un)}"
 NCPU="$(nproc)"
 CLK_TCK="$(getconf CLK_TCK)"
-
-EXCLUDE_REGEX="${RAM_EXCLUDE_REGEX:-^(\(sd-pam\)|systemd.*|dbus-daemon|dbus-broker.*|pipewire.*|wireplumber|pulseaudio|gvfs.*|dconf-service|at-spi.*|gnome-keyring-daemon|xfce4-session|xfsettingsd|xfce4-power-manager|light-locker|NetworkManager|nm-applet|polkit-gnome-authentication-agent-1|blueman-applet|blueman-tray|ulauncher|xsettingsd|udiskie|picom|conky|copyq|redshift|xfce4-panel|Thunar|agetty|ssh-agent|Xorg|Xwayland|ps|awk|bash|sh|zsh|fish|bwrap|codex|chrome_crashpad|cpthost|xdg-open|sleep|startx)$}"
 
 if ! [[ "$LIMIT" =~ ^[0-9]+$ ]] || [[ "$LIMIT" -lt 1 ]]; then
   echo "Usage: $0 [count]" >&2
@@ -26,9 +23,6 @@ sample_cpu() {
   : > "$out"
   while read -r pid comm rss_kb; do
     [[ -n "$pid" && -n "$comm" ]] || continue
-    if [[ "$comm" =~ $EXCLUDE_REGEX ]]; then
-      continue
-    fi
     [[ -r "/proc/$pid/stat" ]] || continue
     # /proc/[pid]/stat: comm in field 2 may contain spaces & parens.
     # Strip to last ')' to skip comm safely.
@@ -43,16 +37,13 @@ sample_cpu() {
     local stime="${f[12]:-0}"
     local jiff=$(( utime + stime ))
     printf "%s\t%s\n" "$pid" "$jiff" >> "$out"
-  done < <(ps -u "$USER_NAME" -o pid=,comm=,rss=)
+  done < <(ps -e -o pid=,comm=,rss=)
 }
 
 # Capture pid -> comm, rss once (for display)
 : > "$meta"
 while read -r pid comm rss_kb; do
   [[ -n "$pid" && -n "$comm" && -n "$rss_kb" ]] || continue
-  if [[ "$comm" =~ $EXCLUDE_REGEX ]]; then
-    continue
-  fi
   mem_kb="$rss_kb"
   if [[ -r "/proc/$pid/smaps_rollup" ]]; then
     pss_kb="$(awk '/^Pss:/ { print $2; exit }' "/proc/$pid/smaps_rollup" 2>/dev/null || true)"
@@ -61,7 +52,7 @@ while read -r pid comm rss_kb; do
     fi
   fi
   printf "%s\t%s\t%s\n" "$pid" "$mem_kb" "$comm" >> "$meta"
-done < <(ps -u "$USER_NAME" -o pid=,comm=,rss=)
+done < <(ps -e -o pid=,comm=,rss=)
 
 sample_cpu "$snap1"
 sleep "$INTERVAL"
@@ -95,11 +86,11 @@ awk -F '\t' \
       n++
       rows[n] = sprintf("%s\t%.1f\t%.1f\t%s", top_pid[c], mem_by_comm[c]/1024, cpu_by_comm[c], c)
     }
-    # sort rows by RAM desc
+    # sort rows by CPU desc, tiebreak RAM desc
     for (i=1; i<=n; i++) {
       for (k=i+1; k<=n; k++) {
         split(rows[i], a, "\t"); split(rows[k], b, "\t")
-        if (b[2]+0 > a[2]+0) { tmp=rows[i]; rows[i]=rows[k]; rows[k]=tmp }
+        if (b[3]+0 > a[3]+0 || (b[3]+0 == a[3]+0 && b[2]+0 > a[2]+0)) { tmp=rows[i]; rows[i]=rows[k]; rows[k]=tmp }
       }
     }
     for (i=1; i<=n && i<=limit; i++) {
