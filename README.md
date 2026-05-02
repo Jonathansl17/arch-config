@@ -9,12 +9,12 @@ login goes straight from TTY1 into X via `.bash_profile` → `startx` →
 
 ## What it installs
 
-- **~80 official packages** (`packages.txt`): base system, kernel, drivers
+- **~80 official packages** (`pacman/pacman-packages.txt`): base system, kernel, drivers
   (Intel/AMD/Nouveau + Vulkan), PipeWire audio stack, NetworkManager,
   Bluetooth, bspwm/sxhkd/dmenu/i3lock, alacritty, Thunar, screenshot tools,
   common desktop apps, and a full dev toolchain (git, docker, postgres,
   JDK 21, Android tools, etc.).
-- **9 AUR packages** (`aur.txt`): brave-bin, visual-studio-code-bin,
+- **9 AUR packages** (`aur/aur-packages.txt`): brave-bin, visual-studio-code-bin,
   intellij-idea-ultimate-edition, postman-bin, pgadmin4-desktop-bin,
   pnpm-bin, ngrok, zoom, android-sdk-cmdline-tools-latest. `yay` is
   bootstrapped from source automatically if it's missing.
@@ -28,7 +28,9 @@ login goes straight from TTY1 into X via `.bash_profile` → `startx` →
   to `/lemonbar/` and launched from `bspwmrc` via `watcher.sh`, which hides
   the bar while any window is fullscreen and brings it back when fullscreen
   ends.
-- **4 systemd services enabled** (`services.txt`): NetworkManager,
+- **2 pipx packages** (`pipx/pipx-packages.txt`): `sherlock-project`, `holehe`
+  (OSINT tools installed in isolated venvs by `install.sh` after `python-pipx`).
+- **4 systemd services enabled** (`services/services.txt`): NetworkManager,
   bluetooth, sshd, ufw. (Docker is installed but not enabled at boot —
   start it manually with `sudo systemctl start docker` when needed.)
 - **6 config files** copied into `~` / `~/.config`:
@@ -265,10 +267,15 @@ This config is not portable to arbitrary setups without edits. It assumes:
 
 ```
 arch-config/
-├── install.sh            # the installer (prereqs → pacman → yay bootstrap → AUR → configs → services)
-├── packages.txt          # official packages list
-├── aur.txt               # AUR packages list
-├── services.txt          # systemd services to enable
+├── install.sh            # the installer (prereqs → pacman → yay bootstrap → AUR → pipx → configs → services)
+├── pacman/
+│   └── pacman-packages.txt   # official packages list
+├── aur/
+│   └── aur-packages.txt      # AUR packages list
+├── pipx/
+│   └── pipx-packages.txt     # Python CLIs installed via pipx (sherlock, holehe, ...)
+├── services/
+│   └── services.txt          # systemd services to enable
 ├── alacritty/
 │   └── alacritty.toml
 ├── bash/

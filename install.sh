@@ -85,13 +85,13 @@ if (( ${#prereqs[@]} > 0 )); then
 fi
 
 # --- 1. Official packages ---
-say "Installing official packages (packages.txt)"
-pkgs=$(read_pkglist "$REPO_DIR/packages.txt")
+say "Installing official packages (pacman/pacman-packages.txt)"
+pkgs=$(read_pkglist "$REPO_DIR/pacman/pacman-packages.txt")
 if [[ -n "$pkgs" ]]; then
     # shellcheck disable=SC2086
     sudo pacman -S --needed --noconfirm $pkgs
 else
-    warn "packages.txt empty or missing, skipping"
+    warn "pacman/pacman-packages.txt empty or missing, skipping"
 fi
 
 # --- 2. Bootstrap yay (if missing) ---
@@ -109,13 +109,34 @@ else
 fi
 
 # --- 3. AUR packages ---
-say "Installing AUR packages (aur.txt)"
-aur_pkgs=$(read_pkglist "$REPO_DIR/aur.txt")
+say "Installing AUR packages (aur/aur-packages.txt)"
+aur_pkgs=$(read_pkglist "$REPO_DIR/aur/aur-packages.txt")
 if [[ -n "$aur_pkgs" ]]; then
     # shellcheck disable=SC2086
     yay -S --needed --noconfirm $aur_pkgs
 else
-    warn "aur.txt empty or missing, skipping"
+    warn "aur/aur-packages.txt empty or missing, skipping"
+fi
+
+# --- 3c. pipx packages (Python CLI tools in isolated venvs) ---
+say "Installing pipx packages (pipx/pipx-packages.txt)"
+if command -v pipx >/dev/null 2>&1; then
+    pipx_pkgs=$(read_pkglist "$REPO_DIR/pipx/pipx-packages.txt")
+    if [[ -n "$pipx_pkgs" ]]; then
+        installed=$(pipx list --short 2>/dev/null | awk '{print $1}')
+        while read -r pkg; do
+            [[ -z "$pkg" ]] && continue
+            if grep -qx "$pkg" <<<"$installed"; then
+                say "pipx: $pkg already installed"
+            else
+                pipx install "$pkg"
+            fi
+        done <<<"$pipx_pkgs"
+    else
+        warn "pipx/pipx-packages.txt empty or missing, skipping"
+    fi
+else
+    warn "pipx not installed; skipping pipx packages"
 fi
 
 # --- 3b. Remove packages that were previously installed by this setup but
@@ -230,13 +251,13 @@ else
 fi
 
 # --- 5. systemd services ---
-say "Enabling systemd services (services.txt)"
-services=$(read_pkglist "$REPO_DIR/services.txt")
+say "Enabling systemd services (services/services.txt)"
+services=$(read_pkglist "$REPO_DIR/services/services.txt")
 if [[ -n "$services" ]]; then
     # shellcheck disable=SC2086
     sudo systemctl enable $services
 else
-    warn "services.txt empty or missing, skipping"
+    warn "services/services.txt empty or missing, skipping"
 fi
 
 # --- 6. Keyboard layout (LATAM) ---
