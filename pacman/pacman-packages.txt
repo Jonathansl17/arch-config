@@ -132,6 +132,7 @@ smartmontools
 # --- Network / security tooling ---
 nmap
 openbsd-netcat
+wireshark-qt
 
 # --- TeX Live ---
 texlive-basic
