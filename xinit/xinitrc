@@ -1,4 +1,7 @@
 export XDG_CURRENT_DESKTOP=bspwm
-systemctl --user import-environment DISPLAY XAUTHORITY
-dbus-update-activation-environment --systemd DISPLAY XAUTHORITY
+# Qt HiDPI scaling (eDP 1920x1080 ~141 DPI)
+export QT_AUTO_SCREEN_SCALE_FACTOR=1
+export QT_SCALE_FACTOR=1.25
+systemctl --user import-environment DISPLAY XAUTHORITY QT_AUTO_SCREEN_SCALE_FACTOR QT_SCALE_FACTOR
+dbus-update-activation-environment --systemd DISPLAY XAUTHORITY QT_AUTO_SCREEN_SCALE_FACTOR QT_SCALE_FACTOR
 exec bspwm
