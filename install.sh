@@ -282,4 +282,10 @@ else
     warn "bspwm is not running; lemonbar will start on the next X session"
 fi
 
+# --- 8. Reload tmux config in running sessions (no kill) ---
+if pgrep -x tmux >/dev/null && tmux ls >/dev/null 2>&1; then
+    say "Reloading tmux config in active sessions"
+    tmux source-file "$HOME/.tmux.conf" 2>/dev/null || true
+fi
+
 say "Done. On a fresh machine: reboot so the enabled services start."
