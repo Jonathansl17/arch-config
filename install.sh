@@ -25,7 +25,7 @@ MAPPINGS=(
     "xinit/xinitrc            $HOME/.xinitrc"
     "templates/template.xopp  $HOME/templates/template.xopp"
     "bin/alacritty-cwd        $HOME/bin/alacritty-cwd"
-    "bin/ram                  $HOME/bin/ram"
+    "bin/cr                   $HOME/bin/cr"
     "bin/monitor              $HOME/bin/monitor"
     "bin/t                    $HOME/bin/t"
     "bin/ws                   $HOME/bin/ws"
@@ -159,7 +159,7 @@ done
 # bspwm scripts and local bin scripts must be executable
 chmod +x "$HOME/.config/bspwm/bspwmrc" 2>/dev/null || true
 chmod +x "$HOME/bin/alacritty-cwd" 2>/dev/null || true
-chmod +x "$HOME/bin/ram" 2>/dev/null || true
+chmod +x "$HOME/bin/cr" 2>/dev/null || true
 chmod +x "$HOME/bin/monitor" 2>/dev/null || true
 for s in t ws vm xp xpc c cc cpwd v; do
     chmod +x "$HOME/bin/$s" 2>/dev/null || true
