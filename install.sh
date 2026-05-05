@@ -20,6 +20,7 @@ MAPPINGS=(
     "bspwm/bspwmrc            $HOME/.config/bspwm/bspwmrc"
     "sxhkd/sxhkdrc            $HOME/.config/sxhkd/sxhkdrc"
     "alacritty/alacritty.toml $HOME/.config/alacritty/alacritty.toml"
+    "tmux/tmux.conf           $HOME/.tmux.conf"
     "bash/bashrc              $HOME/.bashrc"
     "bash/bash_profile        $HOME/.bash_profile"
     "xinit/xinitrc            $HOME/.xinitrc"

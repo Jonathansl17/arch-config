@@ -4,3 +4,7 @@ bindings = [
   { key = "V", mods = "Control", action = "Paste" },
   { key = "Return", mods = "Shift", chars = "\u001B\r" },
 ]
+
+[terminal.shell]
+program = "tmux"
+args = ["new-session"]
