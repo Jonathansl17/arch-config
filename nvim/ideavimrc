@@ -5,7 +5,6 @@ let mapleader = " "
 let maplocalleader = " "
 
 set number
-set relativenumber
 set ignorecase
 set smartcase
 set scrolloff=8
@@ -29,7 +28,8 @@ nnoremap <Tab> :action NextTab<CR>
 nnoremap <S-Tab> :action PreviousTab<CR>
 
 " Search
-nnoremap <leader>f :action FindInPath<CR>
+nnoremap <leader>f :action GotoFile<CR>
+nnoremap <leader>/ :action FindInPath<CR>
 
 " Refactor / diagnostics
 nnoremap <leader>n :action RenameElement<CR>
