@@ -106,3 +106,12 @@ esac
 # pnpm end
 export CHROME_BIN=/usr/bin/brave
 
+# clear dentro tmux también borra scrollback (tmux + alacritty)
+if [ -n "$TMUX" ]; then
+  clear() {
+    command clear
+    tmux clear-history
+    printf '\ePtmux;\e\e[3J\e\\'
+  }
+fi
+
