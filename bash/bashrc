@@ -8,7 +8,7 @@
 alias ls='ls --color=auto'
 alias la='ls -ldA --color=auto .[!.]* ..?* 2>/dev/null'
 alias grep='grep --color=auto'
-PS1='[\u@\h \W]\$ '
+PS1='[\u@\h \[\033[1;96m\]\W\[\033[0m\]]\$ '
 stty intr ^Z
 stty susp ^C
 alias pgadmin4="setsid -f /usr/pgadmin4/bin/pgadmin4 >/dev/null 2>&1"
