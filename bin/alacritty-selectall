@@ -1,0 +1,21 @@
+#!/bin/bash
+class=$(xdotool getactivewindow getwindowclassname 2>/dev/null)
+case "$class" in
+    Alacritty|split_term) ;;
+    *) exit 0 ;;
+esac
+
+xdotool keyup super shift ctrl alt
+sleep 0.05
+xdotool key --delay 12 \
+    ctrl+shift+space \
+    g g shift+v shift+g y \
+    ctrl+shift+space
+
+# Esperar yank, leer clipboard, trimmear, reescribir.
+sleep 0.08
+content=$(xclip -selection clipboard -o 2>/dev/null \
+    | sed -e 's/[[:space:]]\+$//' \
+    | awk 'BEGIN{blanks=0} /^$/ {blanks++; next} {while(blanks-->0) print ""; blanks=0; print}')
+
+printf '%s\n' "$content" | xclip -selection clipboard -i

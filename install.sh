@@ -20,12 +20,12 @@ MAPPINGS=(
     "bspwm/bspwmrc            $HOME/.config/bspwm/bspwmrc"
     "sxhkd/sxhkdrc            $HOME/.config/sxhkd/sxhkdrc"
     "alacritty/alacritty.toml $HOME/.config/alacritty/alacritty.toml"
-    "tmux/tmux.conf           $HOME/.tmux.conf"
     "bash/bashrc              $HOME/.bashrc"
     "bash/bash_profile        $HOME/.bash_profile"
     "xinit/xinitrc            $HOME/.xinitrc"
     "templates/template.xopp  $HOME/templates/template.xopp"
     "bin/alacritty-cwd        $HOME/bin/alacritty-cwd"
+    "bin/alacritty-selectall  $HOME/bin/alacritty-selectall"
     "bin/cr                   $HOME/bin/cr"
     "bin/monitor              $HOME/bin/monitor"
     "bin/t                    $HOME/bin/t"
@@ -280,12 +280,6 @@ if pgrep -x bspwm >/dev/null; then
     setsid -f /lemonbar/watcher.sh </dev/null >/dev/null 2>&1
 else
     warn "bspwm is not running; lemonbar will start on the next X session"
-fi
-
-# --- 8. Reload tmux config in running sessions (no kill) ---
-if pgrep -x tmux >/dev/null && tmux ls >/dev/null 2>&1; then
-    say "Reloading tmux config in active sessions"
-    tmux source-file "$HOME/.tmux.conf" 2>/dev/null || true
 fi
 
 say "Done. On a fresh machine: reboot so the enabled services start."

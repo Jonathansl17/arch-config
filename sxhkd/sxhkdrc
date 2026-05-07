@@ -120,6 +120,10 @@ super + s
 super + l
     slock
 
+# SELECT ALL en alacritty (vi-mode + yank al clipboard)
+super + a
+    ~/bin/alacritty-selectall
+
 Print
     sh -c 'mkdir -p ~/screenshots && f=~/screenshots/$(date +%Y%m%d-%H%M%S).png && maim -s "$f" && ~/bin/clipcopy "$f"'
 
