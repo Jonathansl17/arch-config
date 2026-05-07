@@ -7,7 +7,7 @@ esac
 
 xdotool keyup super shift ctrl alt
 sleep 0.05
-xdotool key --delay 12 \
+xdotool key --delay 1 \
     ctrl+shift+space \
     g g shift+v shift+g y \
     ctrl+shift+space
