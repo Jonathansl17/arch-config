@@ -55,7 +55,6 @@ dmenu
 # --- Terminals ---
 alacritty
 rxvt-unicode
-tmux
 
 # --- Fonts ---
 ttf-jetbrains-mono
