@@ -181,6 +181,17 @@ super + shift + 0
     bspc node -d 10 --follow
 
 ########################
+# MOVE ALL NODES OF CURRENT DESKTOP (super + alt + number, follows focus)
+########################
+
+super + alt + {1-9,0}
+    if [ -n "$(bspc query -N -d focused -n .window)" ]; then \
+        bspc node @/ -d ^{1-9,10} --follow; \
+    else \
+        bspc desktop -f ^{1-9,10}; \
+    fi
+
+########################
 # RESIZE WINDOWS (super + arrow, 50px step)
 ########################
 
