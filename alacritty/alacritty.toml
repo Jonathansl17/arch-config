@@ -3,4 +3,8 @@ bindings = [
   { key = "C", mods = "Control", action = "Copy" },
   { key = "V", mods = "Control", action = "Paste" },
   { key = "Return", mods = "Shift", chars = "\u001B\r" },
+  { key = "Up",   mods = "Shift", action = "ScrollLineUp" },
+  { key = "Down", mods = "Shift", action = "ScrollLineDown" },
+  { key = "Up",   mods = "Shift|Control", action = "ScrollPageUp" },
+  { key = "Down", mods = "Shift|Control", action = "ScrollPageDown" },
 ]
