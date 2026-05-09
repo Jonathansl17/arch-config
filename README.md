@@ -32,9 +32,14 @@ login goes straight from TTY1 into X via `.bash_profile` → `startx` →
   ends.
 - **2 pipx packages** (`pipx/pipx-packages.txt`): `sherlock-project`, `holehe`
   (OSINT tools installed in isolated venvs by `install.sh` after `python-pipx`).
-- **4 systemd services enabled** (`services/services.txt`): NetworkManager,
-  bluetooth, sshd, ufw. (Docker is installed but not enabled at boot —
-  start it manually with `sudo systemctl start docker` when needed.)
+- **2 systemd services enabled at boot:** `NetworkManager.service` (via
+  `services/services.txt`) and `ufw.service` (enabled inline by `install.sh`
+  after applying its default deny-inbound / allow-outbound rules).
+  Other daemons (`bluetooth`, `sshd`, `docker`) are **installed but not
+  enabled** — start them manually with `sudo systemctl start <name>` when
+  you actually need them. `openssh` is included so the `ssh` client is
+  available for connecting *out*; the `sshd` server is left disabled so
+  the machine never accepts inbound SSH unless you opt in.
 - **6 config files** copied into `~` / `~/.config`:
   `bspwm/bspwmrc`, `sxhkd/sxhkdrc`, `alacritty/alacritty.toml`, `bash/bashrc`,
   `bash/bash_profile`, `xinit/xinitrc`.
@@ -218,6 +223,26 @@ Expected output: nothing. Anything that matches should be moved to
 
 ## Optional extras
 
+### Optional helper scripts (`optional-scripts/`)
+
+Standalone scripts not run by `install.sh`. Each is idempotent — safe to
+re-run; they skip cleanly when their target state is already in place.
+See `optional-scripts/README.md` for full details.
+
+- `system-hardening.sh` — apply security defaults: `/boot` vfat
+  `fmask=0077,dmask=0077`, deploy `sysctl/99-hardening.conf`, GRUB hidden
+  menu (`GRUB_TIMEOUT=0`, `GRUB_TIMEOUT_STYLE=hidden`; hold **Shift** at
+  POST to force the menu), and chmod 700 on `~/.aws` / `~/aws` if present.
+- `migrate-to-mnt-data.sh` — move heavy caches and dev tool stores from
+  `/` and `/home` to `/mnt/data` via symlinks.
+- `migrate-to-home.sh` — mirror of the above; consolidates everything back
+  to `~/storage/`.
+
+```sh
+bash optional-scripts/system-hardening.sh    # security defaults
+sudo ./optional-scripts/migrate-to-mnt-data.sh
+```
+
 ### NVIDIA driver (hybrid AMD + NVIDIA laptops)
 
 This repo ships an **optional, idempotent** installer at
@@ -294,13 +319,19 @@ arch-config/
 ├── slock/
 │   └── config.h         # all-black lockscreen build (compiled from source by install.sh)
 ├── sysctl/
-│   └── 99-swappiness.conf
+│   ├── 99-swappiness.conf       # vm.swappiness=10 (deployed by install.sh)
+│   └── 99-hardening.conf        # kptr_restrict, ptrace_scope, rp_filter, redirects (deployed by optional-scripts/system-hardening.sh)
 ├── wifi/
 │   └── wifi.sh          # interactive nmcli helper
 ├── lemonbar/            # custom status bar (date | CPU | WiFi | BAT)
 │   ├── bar.sh           # feeder piped into lemonbar
 │   ├── start.sh         # (re)launch the bar
 │   └── watcher.sh       # bspwm event listener, hides bar on fullscreen
+├── optional-scripts/    # OPTIONAL: idempotent helpers, not run by install.sh
+│   ├── system-hardening.sh      # /boot fmask, sysctl hardening, GRUB hidden menu
+│   ├── migrate-to-mnt-data.sh   # offload caches/dev stores to /mnt/data
+│   ├── migrate-to-home.sh       # mirror: consolidate back to ~/storage
+│   └── README.md
 └── nvidia/              # OPTIONAL: idempotent NVIDIA driver installer, not run by install.sh
     ├── install-nvidia.sh
     └── README.md

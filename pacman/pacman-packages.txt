@@ -21,6 +21,7 @@ network-manager-applet
 wpa_supplicant
 wget
 ufw
+openssh
 
 # --- Bluetooth ---
 bluez
