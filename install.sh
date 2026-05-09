@@ -2,14 +2,15 @@
 # Installs packages (official repos + AUR) and configs into ~/.config and ~.
 # Idempotent: pacman --needed and yay --needed skip anything already installed;
 # config files with identical content are left untouched. Existing files that
-# differ are backed up to <file>.bak-<timestamp> before being replaced.
+# differ are overwritten in place — the repo is the source of truth, so any
+# local divergence is intentionally clobbered. No backups are kept; commit
+# or stash anything you want to preserve before running.
 #
 # Usage: ./install.sh
 
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 
 say()  { printf '\033[1;36m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m!!\033[0m %s\n' "$*"; }
@@ -59,17 +60,12 @@ install_file() {
 
     mkdir -p "$(dirname "$dst")"
 
-    if [[ -e "$dst" || -L "$dst" ]]; then
-        if cmp -s "$src" "$dst"; then
-            say "unchanged: $dst"
-            return
-        fi
-        local backup="${dst}.bak-${TIMESTAMP}"
-        warn "backup: $dst -> $backup"
-        mv "$dst" "$backup"
+    if [[ -e "$dst" || -L "$dst" ]] && cmp -s "$src" "$dst"; then
+        say "unchanged: $dst"
+        return
     fi
 
-    cp "$src" "$dst"
+    cp -f "$src" "$dst"
     say "installed: $dst"
 }
 
@@ -263,7 +259,20 @@ else
     warn "ufw not installed; skipping firewall config"
 fi
 
-# --- 5. systemd services ---
+# --- 5. Mask services we never want active ---
+# Done BEFORE enabling, so when `systemctl enable NetworkManager.service`
+# evaluates its `[Install] Also=` directive, wait-online is already masked
+# and gets skipped instead of being re-enabled. Mask blocks Also=, dependency
+# starts, and manual `systemctl start` (symlink to /dev/null).
+# Idempotent: mask on an already-masked service is a no-op.
+for svc in NetworkManager-wait-online.service; do
+    if [[ "$(systemctl is-enabled "$svc" 2>/dev/null)" != "masked" ]]; then
+        say "Masking $svc"
+        sudo systemctl mask "$svc" >/dev/null
+    fi
+done
+
+# --- 5b. Enable systemd services ---
 say "Enabling systemd services (services/services.txt)"
 services=$(read_pkglist "$REPO_DIR/services/services.txt")
 if [[ -n "$services" ]]; then

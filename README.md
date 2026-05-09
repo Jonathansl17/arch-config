@@ -67,8 +67,10 @@ with Wi-Fi, audio, Bluetooth, and all the keybindings working.
 
 The script is **idempotent**: running it again on an up-to-date system does
 nothing — `pacman --needed`, `yay --needed` and byte-for-byte compare on
-config files. Any config file that exists and differs is backed up to
-`<file>.bak-<timestamp>` before being replaced.
+config files. Any config file that exists and differs is **overwritten in
+place** — the repo is the source of truth, so local divergence is
+intentionally clobbered. Commit or stash anything you want to preserve
+before running.
 
 ## Keybindings (sxhkdrc summary)
 
