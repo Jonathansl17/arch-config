@@ -112,6 +112,9 @@ esac
 # pnpm end
 export CHROME_BIN=/usr/bin/brave
 
+# zoxide (smarter cd: z <dir>, zi <query> selector fzf)
+command -v zoxide >/dev/null && eval "$(zoxide init bash)"
+
 # clear dentro tmux también borra scrollback (tmux + alacritty)
 if [ -n "$TMUX" ]; then
   clear() {

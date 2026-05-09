@@ -125,6 +125,8 @@ dosfstools
 pahole
 tree
 perl-image-exiftool
+zoxide
+fzf
 
 # --- Power / hardware monitoring ---
 power-profiles-daemon
