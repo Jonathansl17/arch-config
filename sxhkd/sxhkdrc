@@ -125,7 +125,7 @@ super + a
     ~/bin/alacritty-selectall
 
 Print
-    sh -c 'mkdir -p ~/screenshots && f=~/screenshots/$(date +%Y%m%d-%H%M%S).png && maim -s "$f" && ~/bin/clipcopy "$f"'
+    sh -c 'd=/mnt/data/screenshots; mkdir -p "$d" && f="$d/$(date +%Y%m%d-%H%M%S).png" && maim -s "$f" && ~/bin/clipcopy "$f"'
 
 
 ########################
