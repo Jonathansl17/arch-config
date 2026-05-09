@@ -12,6 +12,7 @@
 # install it via the official curl script in install.sh instead.
 
 android-sdk-cmdline-tools-latest
+asciiquarium
 brave-bin
 intellij-idea-ultimate-edition
 k6
