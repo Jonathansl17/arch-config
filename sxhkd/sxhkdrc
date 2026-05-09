@@ -114,7 +114,7 @@ super + p
     postman
 
 super + t
-    telegram-desktop
+    Telegram
 
 super + s
     setsid -f /opt/brave-bin/brave --profile-directory=Default --app-id=pjibgclleladliembfgfagdaldikeohf
