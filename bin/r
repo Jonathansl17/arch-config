@@ -86,11 +86,11 @@ awk -F '\t' \
       n++
       rows[n] = sprintf("%s\t%.1f\t%.1f\t%s", top_pid[c], mem_by_comm[c]/1024, cpu_by_comm[c], c)
     }
-    # sort rows by CPU desc, tiebreak RAM desc
+    # sort rows by RAM desc, tiebreak CPU desc
     for (i=1; i<=n; i++) {
       for (k=i+1; k<=n; k++) {
         split(rows[i], a, "\t"); split(rows[k], b, "\t")
-        if (b[3]+0 > a[3]+0 || (b[3]+0 == a[3]+0 && b[2]+0 > a[2]+0)) { tmp=rows[i]; rows[i]=rows[k]; rows[k]=tmp }
+        if (b[2]+0 > a[2]+0 || (b[2]+0 == a[2]+0 && b[3]+0 > a[3]+0)) { tmp=rows[i]; rows[i]=rows[k]; rows[k]=tmp }
       }
     }
     for (i=1; i<=n && i<=limit; i++) {

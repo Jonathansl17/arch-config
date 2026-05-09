@@ -30,6 +30,34 @@ fi
 mkdir -p "$DATA"
 chown "$USER_NAME:$USER_NAME" "$DATA"
 
+# Detect dead /mnt/data: entry in fstab but device not mountable.
+# If fstab references /mnt/data and mount fails, comment the entry out and
+# remove the empty mountpoint so dangling symlinks can be cleanly fixed.
+clean_dead_mnt_data() {
+  local mp="/mnt/data"
+  if ! grep -qE "^[^#].*[[:space:]]${mp}[[:space:]]" /etc/fstab; then
+    return 0
+  fi
+  if mountpoint -q "$mp"; then
+    echo "[preflight] $mp mounted, leaving fstab alone."
+    return 0
+  fi
+  if mount "$mp" 2>/dev/null && mountpoint -q "$mp"; then
+    echo "[preflight] $mp mounted on demand, leaving fstab alone."
+    umount "$mp" 2>/dev/null || true
+    return 0
+  fi
+  echo "[preflight] $mp in fstab but device unavailable. Commenting out entry."
+  cp /etc/fstab "/etc/fstab.bak.$(date +%s)"
+  sed -i -E "s|^([^#].*[[:space:]]${mp}[[:space:]].*)|# DEAD-DEVICE \1|" /etc/fstab
+  systemctl daemon-reload || true
+  if [[ -d "$mp" ]] && [[ -z "$(ls -A "$mp" 2>/dev/null)" ]]; then
+    rmdir "$mp" 2>/dev/null || true
+  fi
+  echo "[preflight] fstab backup at /etc/fstab.bak.*"
+}
+clean_dead_mnt_data
+
 cat <<WARN
 === WARNING ===
 Close browsers, IDEs (VSCode/IntelliJ), and any heavy app before continuing.
@@ -132,9 +160,8 @@ USER_DIRS=(
   .javacpp          # JavaCPP cache
   .android          # Android SDK/avd
   .vscode           # VSCode extensions
-  .vscode-server    # VSCode remote (if any)
+  .vscode-server    # VSCode remote
   .codex            # Codex
-  .claude           # Claude artifacts
   .net              # .NET
   .dotnet           # .NET SDK
   .pipx             # pipx
@@ -154,6 +181,33 @@ USER_DIRS=(
 for d in "${USER_DIRS[@]}"; do
   migrate "$USER_HOME/$d" "$DATA/user/home-dirs/$d" user
 done
+
+echo
+echo "=== User: media dirs (no dot) ==="
+USER_MEDIA_DIRS=(
+  screenshots       # screenshots (Print key)
+)
+for d in "${USER_MEDIA_DIRS[@]}"; do
+  migrate "$USER_HOME/$d" "$DATA/$d" user
+done
+
+# Update sxhkd Print binding to point at the new screenshots location.
+update_sxhkd_screenshots() {
+  local new_path="$1"
+  local files=(
+    "$USER_HOME/.config/sxhkd/sxhkdrc"
+    "$USER_HOME/arch-config/sxhkd/sxhkdrc"
+  )
+  for f in "${files[@]}"; do
+    [[ -f "$f" ]] || continue
+    if grep -q 'maim -s' "$f"; then
+      sed -i -E "s|d=[^;]+;( *mkdir -p \"\\\$d\" && f=\"\\\$d/)|d=$new_path;\\1|" "$f"
+      echo "  [sxhkd] updated $f → d=$new_path"
+    fi
+  done
+  pkill -USR1 sxhkd 2>/dev/null && echo "  [sxhkd] reloaded" || true
+}
+update_sxhkd_screenshots "$DATA/screenshots"
 
 echo
 echo "=== User: heavy ~/.local/share entries ==="

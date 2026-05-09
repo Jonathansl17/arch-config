@@ -7,6 +7,9 @@
 #
 # lemonbar-xft-git is intentionally NOT listed here: it needs CC=gcc to build
 # (clang rejects -march=x86-64). install.sh handles it in its own section.
+#
+# pnpm is intentionally NOT listed here: pnpm-bin is orphaned in AUR, so we
+# install it via the official curl script in install.sh instead.
 
 android-sdk-cmdline-tools-latest
 brave-bin
@@ -14,7 +17,6 @@ intellij-idea-ultimate-edition
 k6
 ngrok
 pgadmin4-desktop-bin
-pnpm-bin
 postman-bin
 python312
 visual-studio-code-bin

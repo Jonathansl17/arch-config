@@ -26,7 +26,7 @@ MAPPINGS=(
     "templates/template.xopp  $HOME/templates/template.xopp"
     "bin/alacritty-cwd        $HOME/bin/alacritty-cwd"
     "bin/alacritty-selectall  $HOME/bin/alacritty-selectall"
-    "bin/cr                   $HOME/bin/cr"
+    "bin/r                    $HOME/bin/r"
     "bin/monitor              $HOME/bin/monitor"
     "bin/t                    $HOME/bin/t"
     "bin/ws                   $HOME/bin/ws"
@@ -143,7 +143,7 @@ fi
 # --- 3b. Remove packages that were previously installed by this setup but
 #         are no longer part of it. Keep the list short; these are one-off
 #         cleanups after decisions are reversed. Safe no-op on fresh installs.
-for pkg in xss-lock; do
+for pkg in xss-lock pnpm-bin; do
     if pacman -Q "$pkg" >/dev/null 2>&1; then
         say "Removing obsolete package: $pkg"
         sudo pacman -Rns --noconfirm "$pkg"
@@ -160,7 +160,7 @@ done
 # bspwm scripts and local bin scripts must be executable
 chmod +x "$HOME/.config/bspwm/bspwmrc" 2>/dev/null || true
 chmod +x "$HOME/bin/alacritty-cwd" 2>/dev/null || true
-chmod +x "$HOME/bin/cr" 2>/dev/null || true
+chmod +x "$HOME/bin/r" 2>/dev/null || true
 chmod +x "$HOME/bin/monitor" 2>/dev/null || true
 for s in t ws vm xp xpc c cc cpwd v; do
     chmod +x "$HOME/bin/$s" 2>/dev/null || true
@@ -231,6 +231,18 @@ if [[ ! -d "$HOME/.nvm" ]]; then
     git clone --depth=1 --branch "$NVM_VERSION" https://github.com/nvm-sh/nvm.git "$HOME/.nvm"
 else
     say "nvm already present at ~/.nvm (skipping)"
+fi
+
+# --- 4e-bis. pnpm (via official install script) ---
+# pnpm-bin in AUR is orphaned, so we install via get.pnpm.io straight into
+# ~/.local/share/pnpm. The PATH export for $PNPM_HOME is already in
+# bash/bashrc, so the binary is on $PATH after the next shell.
+PNPM_HOME="$HOME/.local/share/pnpm"
+if [[ ! -x "$PNPM_HOME/pnpm" ]]; then
+    say "Installing pnpm via get.pnpm.io"
+    curl -fsSL https://get.pnpm.io/install.sh | env PNPM_HOME="$PNPM_HOME" SHELL="$(command -v bash)" sh -
+else
+    say "pnpm already present at $PNPM_HOME/pnpm (skipping)"
 fi
 
 # --- 4f. sysctl tweaks ---

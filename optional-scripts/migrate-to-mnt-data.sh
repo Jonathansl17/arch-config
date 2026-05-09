@@ -162,10 +162,6 @@ USER_DIRS=(
   .jdks             # JetBrains JDKs
   .javacpp          # JavaCPP cache
   .android          # Android SDK/avd
-  .vscode           # VSCode extensions
-  .vscode-server    # VSCode remote (if any)
-  .codex            # Codex
-  .claude           # Claude artifacts
   .net              # .NET
   .dotnet           # .NET SDK
   .pipx             # pipx
@@ -185,6 +181,33 @@ USER_DIRS=(
 for d in "${USER_DIRS[@]}"; do
   migrate "$USER_HOME/$d" "$DATA/user/home-dirs/$d" user
 done
+
+echo
+echo "=== User: media dirs (no dot) ==="
+USER_MEDIA_DIRS=(
+  screenshots       # screenshots (Print key)
+)
+for d in "${USER_MEDIA_DIRS[@]}"; do
+  migrate "$USER_HOME/$d" "$DATA/$d" user
+done
+
+# Update sxhkd Print binding to point at the new screenshots location.
+update_sxhkd_screenshots() {
+  local new_path="$1"
+  local files=(
+    "$USER_HOME/.config/sxhkd/sxhkdrc"
+    "$USER_HOME/arch-config/sxhkd/sxhkdrc"
+  )
+  for f in "${files[@]}"; do
+    [[ -f "$f" ]] || continue
+    if grep -q 'maim -s' "$f"; then
+      sed -i -E "s|d=[^;]+;( *mkdir -p \"\\\$d\" && f=\"\\\$d/)|d=$new_path;\\1|" "$f"
+      echo "  [sxhkd] updated $f → d=$new_path"
+    fi
+  done
+  pkill -USR1 sxhkd 2>/dev/null && echo "  [sxhkd] reloaded" || true
+}
+update_sxhkd_screenshots "$DATA/screenshots"
 
 echo
 echo "=== User: heavy ~/.local/share entries ==="
