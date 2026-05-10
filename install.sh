@@ -25,7 +25,6 @@ MAPPINGS=(
     "bash/bash_profile        $HOME/.bash_profile"
     "xinit/xinitrc            $HOME/.xinitrc"
     "templates/template.xopp  $HOME/templates/template.xopp"
-    "bin/alacritty-cwd        $HOME/bin/alacritty-cwd"
     "bin/alacritty-selectall  $HOME/bin/alacritty-selectall"
     "bin/b                    $HOME/bin/b"
     "bin/r                    $HOME/bin/r"
@@ -157,7 +156,6 @@ done
 
 # bspwm scripts and local bin scripts must be executable
 chmod +x "$HOME/.config/bspwm/bspwmrc" 2>/dev/null || true
-chmod +x "$HOME/bin/alacritty-cwd" 2>/dev/null || true
 chmod +x "$HOME/bin/r" 2>/dev/null || true
 chmod +x "$HOME/bin/monitor" 2>/dev/null || true
 for sc in s b ws vm xp xpc c cc cpwd v wifi; do
@@ -170,6 +168,11 @@ mkdir -p "$HOME/bin"
 gcc -O2 -o "$HOME/bin/clipcopy" "$REPO_DIR/bin/clipcopy.c" \
     $(pkg-config --cflags --libs gtk+-3.0)
 say "installed: ~/bin/clipcopy"
+
+# --- 4b-ter. Build alacritty-cwd (Xlib + /proc, replaces the bash script) ---
+say "Building alacritty-cwd"
+gcc -O2 -Wall -o "$HOME/bin/alacritty-cwd" "$REPO_DIR/bin/alacritty-cwd.c" -lX11
+say "installed: ~/bin/alacritty-cwd"
 
 # --- 4c. Install lemonbar + /lemonbar scripts (custom status bar) ---
 say "Installing lemonbar-xft-git (forces CC=gcc; clang fails with -march)"
