@@ -180,16 +180,13 @@ if ! pacman -Q lemonbar-xft-git >/dev/null 2>&1; then
     CC=gcc yay -S --needed --noconfirm lemonbar-xft-git
 fi
 
-say "Building bspwm-desktops (direct socket, no bspc)"
-gcc -O2 -Wall -o "$REPO_DIR/lemonbar/bspwm-desktops" "$REPO_DIR/lemonbar/bspwm-desktops.c"
-
 say "Deploying /lemonbar binaries"
 if [[ ! -d /lemonbar ]]; then
     sudo mkdir -p /lemonbar
 fi
 sudo chown "$USER:$USER" /lemonbar
 
-# Stop the running bar; otherwise cp/gcc on busy binaries fails with
+# Stop the running daemons; otherwise gcc on busy binaries fails with
 # "Text file busy".
 pkill -x bar 2>/dev/null || true
 pkill -x bspwm-desktops 2>/dev/null || true
@@ -197,11 +194,11 @@ pkill -x lemonbar 2>/dev/null || true
 rm -f /tmp/lemonbar-bar.lock
 sleep 0.3
 
-# Build bar.c straight into /lemonbar/ (single-file daemon: replaces the old
-# bar.sh + start.sh + watcher.sh trio).
-gcc -O2 -Wall -o /lemonbar/bar "$REPO_DIR/lemonbar/bar.c" -lX11 -lXrandr
-cp "$REPO_DIR/lemonbar/bspwm-desktops" /lemonbar/
-chmod +x /lemonbar/bar /lemonbar/bspwm-desktops
+# Build both binaries straight into /lemonbar/ — no intermediate artifacts in
+# the repo. bar.c is the unified daemon (metrics + fullscreen watcher);
+# bspwm-desktops talks the bspwm IPC and feeds the desktops string.
+gcc -O2 -Wall -o /lemonbar/bar             "$REPO_DIR/lemonbar/bar.c"             -lX11 -lXrandr
+gcc -O2 -Wall -o /lemonbar/bspwm-desktops  "$REPO_DIR/lemonbar/bspwm-desktops.c"
 
 # --- 4d. Build slock from source (custom config: all-black lock screen) ---
 say "Building slock from source"
