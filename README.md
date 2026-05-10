@@ -21,15 +21,20 @@ login goes straight from TTY1 into X via `.bash_profile` → `startx` →
 - **Node.js toolchain**: `nodejs` from the official repos, **nvm** cloned
   into `~/.nvm` (pinned via `NVM_VERSION`), and **pnpm** installed via the
   official `get.pnpm.io` script into `~/.local/share/pnpm` (pnpm-bin in AUR
-  is orphaned). The nvm loader and `PNPM_HOME` PATH export both live in the
-  versioned `bash/bashrc`, so `nvm` / `node` / `pnpm` work out of the box
-  after install.
+  is orphaned). `JAVA_HOME`, `ANDROID_HOME`, `NVM_DIR`, `PNPM_HOME` and the
+  combined `PATH` live in `bash/bash_profile` (one-time login setup, no
+  per-shell idempotence checks); the nvm lazy-load functions live in
+  `bash/bashrc` so `nvm` / `node` / `pnpm` work out of the box after install.
 - **Custom lemonbar status bar** (`lemonbar/`): a minimal top bar showing
-  date, CPU temp, Wi-Fi SSID and battery. `lemonbar-xft-git` is built from
-  AUR with `CC=gcc` (clang rejects `-march=x86-64`). Scripts are deployed
-  to `/lemonbar/` and launched from `bspwmrc` via `watcher.sh`, which hides
-  the bar while any window is fullscreen and brings it back when fullscreen
-  ends.
+  date, CPU%, GHz, temp and RAM. The whole stack is C: a single
+  `/lemonbar/bar` daemon (compiled from `lemonbar/bar.c` with libX11 +
+  libXrandr) replaces the old `bar.sh + start.sh + watcher.sh` trio. It
+  spawns lemonbar and `bspwm-desktops` as children, multiplexes a 1 Hz
+  timerfd + the bspwm event socket + the desktops pipe with `select()`,
+  reads metrics directly from `/proc` and `/sys`, and calls
+  `XUnmapWindow` / `XMapWindow` on the lemonbar window when fullscreen
+  toggles. Zero forks per tick. `lemonbar-xft-git` is built from AUR with
+  `CC=gcc` (clang rejects `-march=x86-64`).
 - **2 pipx packages** (`pipx/pipx-packages.txt`): `sherlock-project`, `holehe`
   (OSINT tools installed in isolated venvs by `install.sh` after `python-pipx`).
 - **2 systemd services enabled at boot:** `NetworkManager.service` (via
@@ -43,6 +48,14 @@ login goes straight from TTY1 into X via `.bash_profile` → `startx` →
 - **6 config files** copied into `~` / `~/.config`:
   `bspwm/bspwmrc`, `sxhkd/sxhkdrc`, `alacritty/alacritty.toml`, `bash/bashrc`,
   `bash/bash_profile`, `xinit/xinitrc`.
+- **Personal `bin/` scripts** copied into `~/bin/`: shell wrappers around the
+  custom termclip helpers (`c`, `cc`, `cpwd`, `v`), short aliases as scripts
+  (`s` git stage+commit+push with secret-pattern abort, `b` battery status,
+  `wifi` interactive nmcli manager, `ws` net status, `vm` audio status, `r`
+  process snapshot, `monitor` external display layout, `xp` / `xpc` xournalpp
+  → PDF, `alacritty-selectall`). Two of them are compiled C: `clipcopy.c`
+  (GTK-3 multi-target clipboard) and `alacritty-cwd.c` (Xlib + `/proc`,
+  inherits cwd from the focused alacritty when launching a new one — 0 forks).
 - **Xournal++ default template** at `templates/template.xopp` →
   `~/templates/template.xopp`. The `xournalpp` shell function in `bash/bashrc`
   uses it: when invoked as `xournalpp file.xopp` with a non-existent path, it
@@ -94,42 +107,61 @@ before running.
 
 ## Status bar (lemonbar)
 
-A minimal top bar rendered by `lemonbar-xft-git`, fed by an **event-driven**
-loop in `lemonbar/bar.sh`: each metric has its own refresh interval (CPU% 2 s,
-GHz 5 s, RAM 3 s, TEMP 5 s, WIFI 15 s, BAT 30 s, DATE 60 s) and the loop only
-wakes up when the nearest deadline is due. Content, centered on a single line:
+A minimal top bar rendered by `lemonbar-xft-git`, driven by a **single C
+daemon** at `/lemonbar/bar` (built from `lemonbar/bar.c` with libX11 +
+libXrandr). Content, centered on a single line:
 
 ```
-Tue 14 Apr 09:52 PM  |  CPU 3% 0.9GHz 48°C  |  RAM 4.2/30.6GB  |  WIFI MyNet  |  BAT 87% Discharging
+1 *2* 3 4 5    Tue 14 Apr 09:52 PM    CPU 3% 0.9GHz 48°C  |  RAM 4.2/30.6GB
 ```
 
-All metrics come from `/proc` and `/sys` via bash builtins (no forks in the
-hot path); the only external calls are `nmcli` (WIFI, 15 s) and `bspc` on
-fullscreen events from the watcher. SSID is cached to `/tmp/lemonbar-wifi`
-so the first frame after show is instant — real NetworkManager query is
-deferred to the next 15 s tick.
+Per-metric refresh intervals: CPU% 2 s, GHz 5 s, RAM 3 s, temp 5 s, date 60 s.
+The desktop list updates instantly on every bspwm event. All metrics come
+from `/proc` and `/sys` via plain `read`/`fopen` (no forks in the hot path);
+the bspwm IPC for fullscreen detection runs over a Unix socket directly.
 
 Font: `monospace:size=12` (matches the alacritty size), 22 px tall. Colors:
 white text on translucent black background.
 
+### Architecture
+
+`/lemonbar/bar` is a single binary that:
+
+1. Detects the primary monitor (name + geometry) via XRandR.
+2. Spawns `/lemonbar/bspwm-desktops` (also C; talks to bspwm directly and
+   emits a preformatted desktops string on stdout) and reads its stdout.
+3. Spawns `lemonbar -p -d -g <geom>` and writes formatted lines to its stdin.
+4. Subscribes to `node_state node_focus node_remove node_transfer
+   desktop_focus` on a separate bspwm socket connection for fullscreen
+   detection.
+5. `select()` on a 1 Hz `timerfd` + the desktops pipe + the event socket;
+   re-renders only what's dirty.
+6. On fullscreen toggle: `XUnmapWindow` / `XMapWindow` on the lemonbar
+   window + `bspc config -m <primary> top_padding 0|22`.
+7. Auto-respawns lemonbar (with re-detected geometry) if the child dies —
+   `bin/monitor --off` and similar tools `pkill lemonbar`, and the bar
+   comes back automatically.
+
+Single-instance via `flock("/tmp/lemonbar-bar.lock")` — running the binary
+twice is a silent no-op.
+
 ### How it is launched
 
-`bspwmrc` runs `/lemonbar/watcher.sh &` in a marked block:
+`bspwmrc` runs `/lemonbar/bar &` in a marked block:
 
 ```sh
 # LEMONBAR-START
-/lemonbar/watcher.sh &
+/lemonbar/bar &
 # LEMONBAR-END
 ```
 
-The watcher subscribes to `bspc subscribe node_state node_focus node_remove
-node_transfer desktop_focus` and syncs the bar on every event:
+`install.sh` builds both binaries straight into `/lemonbar/` (no
+intermediate artifacts in the repo):
 
-- If any node has the `fullscreen` state → kill the bar, set `top_padding 0`.
-- Otherwise → restart the bar, set `top_padding 22`.
-
-This means fullscreening a window (`ctrl + .`) hides the bar automatically
-and bringing it back is automatic too.
+```sh
+gcc -O2 -Wall -o /lemonbar/bar             lemonbar/bar.c            -lX11 -lXrandr
+gcc -O2 -Wall -o /lemonbar/bspwm-desktops  lemonbar/bspwm-desktops.c
+```
 
 ### Why `lemonbar-xft-git` is handled outside `aur.txt`
 
@@ -140,9 +172,9 @@ The PKGBUILD ships `CFLAGS` that include `-march=x86-64`, which the default
 
 ### Files
 
-- `/lemonbar/bar.sh` — feeder loop, pipes into `lemonbar`
-- `/lemonbar/start.sh` — (re)launch (kills previous, sets `top_padding`, starts bar)
-- `/lemonbar/watcher.sh` — bspwm event listener that drives auto-hide
+- `lemonbar/bar.c` — unified C daemon (metrics + fullscreen watcher).
+- `lemonbar/bspwm-desktops.c` — bspwm-IPC client that emits the desktops
+  string for the bar.
 
 ## Screenshot setup
 
