@@ -316,10 +316,11 @@ This config is not portable to arbitrary setups without edits. It assumes:
 - **X11**, not Wayland. The screenshot pipeline, `xrandr`, `xsetroot` and
   everything in `.xinitrc` are X11-only.
 - **PipeWire** audio (the volume keybindings use `wpctl`).
-- **Monitor names** in `bspwmrc` are hardcoded to `eDP` and `HDMI-1-1`.
-  On most laptops they're named differently (`eDP-1`, `HDMI-1`, etc.) —
-  if you don't match, the multi-monitor branch silently falls through to
-  the single-monitor fallback. Edit those two lines if needed.
+- **Monitor names** are now detected dynamically in `bspwmrc`,
+  `bin/monitor`, and `lemonbar/bar.c` — the internal display is matched
+  against `eDP*` / `LVDS*` / `DSI*` with a fallback to the first connected
+  output, and external monitors are picked up by `HDMI-*` connected scan.
+  Should work on any laptop or desktop without edits.
 - `postgresql` is installed but **not** enabled or initialized automatically
   because it needs a manual `initdb` on first use.
 - Brave is on AUR, so it's installed through yay in step 3 (not via pacman).
@@ -355,12 +356,22 @@ arch-config/
 ├── sysctl/
 │   ├── 99-swappiness.conf       # vm.swappiness=10 (deployed by install.sh)
 │   └── 99-hardening.conf        # kptr_restrict, ptrace_scope, rp_filter, redirects (deployed by optional-scripts/system-hardening.sh)
-├── wifi/
-│   └── wifi.sh          # interactive nmcli helper
-├── lemonbar/            # custom status bar (date | CPU | WiFi | BAT)
-│   ├── bar.sh           # feeder piped into lemonbar
-│   ├── start.sh         # (re)launch the bar
-│   └── watcher.sh       # bspwm event listener, hides bar on fullscreen
+├── bin/                 # personal scripts copied to ~/bin/
+│   ├── alacritty-cwd.c  # Xlib + /proc, inherits cwd from focused alacritty (compiled to ~/bin/alacritty-cwd)
+│   ├── alacritty-selectall  # vi-mode select-all + clipboard yank
+│   ├── b                # battery status
+│   ├── c, cc, cpwd, v   # termclip wrappers (clipboard helpers)
+│   ├── clipcopy.c       # GTK-3 multi-target clipboard tool (compiled to ~/bin/clipcopy)
+│   ├── monitor          # external display layout (right-of/left-of/off, status)
+│   ├── r                # process snapshot (CPU%, RSS, top N)
+│   ├── s                # git stage + Claude-generated commit + push (aborts on secret patterns)
+│   ├── vm               # volume + mic status
+│   ├── wifi             # interactive WiFi/LAN manager (nmcli)
+│   ├── ws               # net status (LAN + WiFi)
+│   ├── xp, xpc          # xournalpp → PDF helpers
+├── lemonbar/            # custom status bar (date | CPU | RAM | desktops)
+│   ├── bar.c            # unified C daemon: metrics + fullscreen watcher (compiled to /lemonbar/bar)
+│   └── bspwm-desktops.c # bspwm-IPC client emitting the desktops string (compiled to /lemonbar/bspwm-desktops)
 ├── optional-scripts/    # OPTIONAL: idempotent helpers, not run by install.sh
 │   ├── system-hardening.sh      # /boot fmask, sysctl hardening, GRUB hidden menu
 │   ├── migrate-to-mnt-data.sh   # offload caches/dev stores to /mnt/data
