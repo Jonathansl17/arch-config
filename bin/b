@@ -1,0 +1,12 @@
+#!/bin/bash
+# Battery status. Resolves the BATn directory at call time so it works on
+# laptops that expose BAT0 instead of BAT1; prints "no battery" on desktops.
+
+for bat in /sys/class/power_supply/BAT*; do
+    [ -d "$bat" ] || continue
+    read -r cap    < "$bat/capacity"
+    read -r status < "$bat/status"
+    echo "${cap}% — ${status}"
+    exit 0
+done
+echo "no battery"

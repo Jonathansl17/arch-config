@@ -1,0 +1,17 @@
+#!/bin/bash
+# Stage all + commit (with a Claude-generated message) + push.
+# Aborts if staged files match suspicious names (.env, secrets, keys).
+
+git add . || exit $?
+
+SECRET_PATTERN='\.env|\.pem|\.key$|secret|credential|id_rsa|id_ed25519'
+hits=$(git diff --cached --name-only | grep -iE "$SECRET_PATTERN" || true)
+if [ -n "$hits" ]; then
+    echo "ABORT: possible secrets staged:" >&2
+    echo "$hits" >&2
+    echo "Inspect with: git diff --cached --name-only" >&2
+    exit 1
+fi
+
+MSG=$(git diff --cached | claude -p "Generate a concise commit message in English for these changes. Respond ONLY with the commit message itself, in English. Do NOT add any author, co-author, signature, attribution, trailers, or mention of Claude/Anthropic/AI.") || exit $?
+git commit -m "$MSG" && git push

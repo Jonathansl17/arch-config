@@ -27,9 +27,10 @@ MAPPINGS=(
     "templates/template.xopp  $HOME/templates/template.xopp"
     "bin/alacritty-cwd        $HOME/bin/alacritty-cwd"
     "bin/alacritty-selectall  $HOME/bin/alacritty-selectall"
+    "bin/b                    $HOME/bin/b"
     "bin/r                    $HOME/bin/r"
     "bin/monitor              $HOME/bin/monitor"
-    "bin/t                    $HOME/bin/t"
+    "bin/s                    $HOME/bin/s"
     "bin/ws                   $HOME/bin/ws"
     "bin/vm                   $HOME/bin/vm"
     "bin/xp                   $HOME/bin/xp"
@@ -38,6 +39,7 @@ MAPPINGS=(
     "bin/cc                   $HOME/bin/cc"
     "bin/cpwd                 $HOME/bin/cpwd"
     "bin/v                    $HOME/bin/v"
+    "bin/wifi                 $HOME/bin/wifi"
     "nvim/init.lua            $HOME/.config/nvim/init.lua"
     "nvim/ideavimrc           $HOME/.ideavimrc"
 )
@@ -158,8 +160,8 @@ chmod +x "$HOME/.config/bspwm/bspwmrc" 2>/dev/null || true
 chmod +x "$HOME/bin/alacritty-cwd" 2>/dev/null || true
 chmod +x "$HOME/bin/r" 2>/dev/null || true
 chmod +x "$HOME/bin/monitor" 2>/dev/null || true
-for s in t ws vm xp xpc c cc cpwd v; do
-    chmod +x "$HOME/bin/$s" 2>/dev/null || true
+for sc in s b ws vm xp xpc c cc cpwd v wifi; do
+    chmod +x "$HOME/bin/$sc" 2>/dev/null || true
 done
 
 # --- 4b. Build clipcopy (multi-target clipboard for screenshots) ---
@@ -168,15 +170,6 @@ mkdir -p "$HOME/bin"
 gcc -O2 -o "$HOME/bin/clipcopy" "$REPO_DIR/bin/clipcopy.c" \
     $(pkg-config --cflags --libs gtk+-3.0)
 say "installed: ~/bin/clipcopy"
-
-# --- 4b-bis. Deploy /wifi script (interactive WiFi/LAN manager) ---
-say "Deploying /wifi script"
-if [[ ! -d /wifi ]]; then
-    sudo mkdir -p /wifi
-fi
-sudo chown "$USER:$USER" /wifi
-cp "$REPO_DIR/wifi/wifi.sh" /wifi/wifi.sh
-chmod +x /wifi/wifi.sh
 
 # --- 4c. Install lemonbar + /lemonbar scripts (custom status bar) ---
 say "Installing lemonbar-xft-git (forces CC=gcc; clang fails with -march)"
