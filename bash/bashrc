@@ -43,7 +43,17 @@ s() {
     git commit -m "$MSG" && git push
 }
 #alias s='git add . && git commit -m "Updates" && git push origin master'
-alias b='echo "$(cat /sys/class/power_supply/BAT1/capacity)% — $(cat /sys/class/power_supply/BAT1/status)"'
+# Battery status. Resolves the BATn directory at call time so it works on
+# laptops that expose BAT0 instead of BAT1; prints "no battery" on desktops.
+b() {
+    local bat
+    for bat in /sys/class/power_supply/BAT*; do
+        [ -d "$bat" ] || continue
+        echo "$(cat "$bat/capacity")% — $(cat "$bat/status")"
+        return
+    done
+    echo "no battery"
+}
 alias d='date'
 alias x='d && b && t'
 alias feh='feh -F'
@@ -92,7 +102,7 @@ vlc() {
 }
 
 # === nvm (Node Version Manager) — lazy load ===
-# Stubs cargan nvm/node/npm/npx/corepack on-demand. Ahorra ~48ms por shell.
+# Stubs load nvm/node/npm/npx/corepack on demand. Saves ~48ms per shell.
 export NVM_DIR="$HOME/.nvm"
 _nvm_load() {
     unset -f nvm node npm npx corepack
@@ -120,7 +130,7 @@ esac
 # === end termclip ===
 
 # pnpm
-export PNPM_HOME="/home/jony/.local/share/pnpm"
+export PNPM_HOME="$HOME/.local/share/pnpm"
 case ":$PATH:" in
   *":$PNPM_HOME:"*) ;;
   *) export PATH="$PNPM_HOME:$PATH" ;;
@@ -131,7 +141,7 @@ export CHROME_BIN=/usr/bin/brave
 # zoxide (smarter cd: z <dir>, zi <query> selector fzf)
 command -v zoxide >/dev/null && eval "$(zoxide init bash)"
 
-# clear dentro tmux también borra scrollback (tmux + alacritty)
+# Inside tmux, `clear` should also wipe scrollback (tmux + alacritty).
 if [ -n "$TMUX" ]; then
   clear() {
     command clear

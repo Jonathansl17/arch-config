@@ -1,12 +1,12 @@
 #!/bin/bash
 if [ $# -eq 0 ]; then
-    echo "uso: xpc archivo.xopp [archivo2.xopp ...]" >&2
+    echo "usage: xpc file.xopp [file2.xopp ...]" >&2
     exit 1
 fi
 pdfs=()
 for f in "$@"; do
     if [ ! -e "$f" ]; then
-        echo "xpc: no existe '$f'" >&2
+        echo "xpc: '$f' does not exist" >&2
         continue
     fi
     pdf="${f%.*}.pdf"

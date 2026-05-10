@@ -1,2 +1,17 @@
 #!/bin/bash
-sensors k10temp-pci-00c3 | awk '/^Tctl:/ {print "CPU: " $2}'
+# Print CPU temperature. Reads directly from /sys/class/hwmon so we don't
+# depend on lm_sensors and don't hardcode a chip ID like k10temp-pci-00c3
+# (the PCI suffix varies between machines). Supports AMD (k10temp/zenpower),
+# Intel (coretemp), and ARM (cpu_thermal).
+for d in /sys/class/hwmon/hwmon*; do
+    [ -r "$d/name" ] || continue
+    read -r name < "$d/name"
+    case "$name" in
+        k10temp|zenpower|coretemp|cpu_thermal)
+            [ -r "$d/temp1_input" ] || continue
+            read -r raw < "$d/temp1_input"
+            printf 'CPU: %d.%d°C\n' $((raw / 1000)) $(((raw % 1000) / 100))
+            exit 0 ;;
+    esac
+done
+echo "CPU: --"

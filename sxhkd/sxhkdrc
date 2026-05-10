@@ -123,7 +123,7 @@ super + s
 super + l
     slock
 
-# SELECT ALL en alacritty (vi-mode + yank al clipboard)
+# SELECT ALL in alacritty (vi-mode + yank to clipboard)
 super + a
     ~/bin/alacritty-selectall
 
@@ -133,7 +133,7 @@ Print
 
 ########################
 # DESKTOPS (super + number)
-# 1-5 -> eDP (laptop) | 6-0 -> HDMI-1-1 (external)
+# 1-5 -> primary monitor | 6-0 -> external (when present)
 ########################
 
 super + 1

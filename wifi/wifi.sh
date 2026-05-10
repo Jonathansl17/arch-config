@@ -200,7 +200,7 @@ disconnect_current() {
   echo ""
   active=$(nmcli -t -f NAME,TYPE connection show --active | awk -F: '$2 ~ /wireless/ {print $1; exit}')
   if [[ -z "$active" ]]; then
-    echo -e "${YELLOW}No hay ninguna red WiFi conectada.${NC}"
+    echo -e "${YELLOW}No WiFi network currently connected.${NC}"
     return 0
   fi
   echo -e "${YELLOW}Disconnecting from $active...${NC}"

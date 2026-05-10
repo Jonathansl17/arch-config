@@ -12,7 +12,7 @@ xdotool key --delay 1 \
     g g shift+v shift+g y \
     ctrl+shift+space
 
-# Esperar yank, leer clipboard, trimmear, reescribir.
+# Wait for the yank, read the clipboard, trim trailing whitespace, rewrite it.
 sleep 0.08
 content=$(xclip -selection clipboard -o 2>/dev/null \
     | sed -e 's/[[:space:]]\+$//' \
