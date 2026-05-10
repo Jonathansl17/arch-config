@@ -2,6 +2,20 @@
 # ~/.bash_profile
 #
 
+# Environment lives here (not in ~/.bashrc) so it's set once per login and
+# inherited by every child shell — no idempotence guards, no PATH duplication
+# when bashrc is re-sourced.
+export JAVA_HOME=/usr/lib/jvm/java-21-openjdk
+export ANDROID_HOME=/opt/android-sdk
+export ANDROID_SDK_ROOT=$ANDROID_HOME
+export NVM_DIR="$HOME/.nvm"
+export PNPM_HOME="$HOME/.local/share/pnpm"
+export CHROME_BIN=/usr/bin/brave
+
+# PATH order (left = highest priority): pnpm, ~/bin (termclip), ~/.local/bin,
+# inherited PATH, then Java/Android tooling appended at the end.
+export PATH="$PNPM_HOME:$HOME/bin:$HOME/.local/bin:$PATH:$JAVA_HOME/bin:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/build-tools/34.0.0"
+
 [[ -f ~/.bashrc ]] && . ~/.bashrc
 
 if [[ -z $DISPLAY && $XDG_VTNR -eq 1 ]]; then
