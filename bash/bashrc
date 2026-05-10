@@ -45,11 +45,14 @@ s() {
 #alias s='git add . && git commit -m "Updates" && git push origin master'
 # Battery status. Resolves the BATn directory at call time so it works on
 # laptops that expose BAT0 instead of BAT1; prints "no battery" on desktops.
+# Uses `read` (builtin) instead of `cat` to avoid two forks per call.
 b() {
-    local bat
+    local bat cap status
     for bat in /sys/class/power_supply/BAT*; do
         [ -d "$bat" ] || continue
-        echo "$(cat "$bat/capacity")% — $(cat "$bat/status")"
+        read -r cap    < "$bat/capacity"
+        read -r status < "$bat/status"
+        echo "${cap}% — ${status}"
         return
     done
     echo "no battery"
