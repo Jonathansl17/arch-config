@@ -5,7 +5,19 @@
 D=""; T="--"; R="--"
 cpu_usage="--"; cpu_ghz="-.-"; DESKTOPS=""
 
-HWMON_TEMP=/sys/class/hwmon/hwmon6/temp1_input   # k10temp Tctl
+# Resolve the CPU temperature sensor by driver name. The hwmonN index is
+# unstable across reboots and machines, so we walk /sys/class/hwmon and pick
+# the first matching driver: k10temp/zenpower (AMD), coretemp (Intel),
+# cpu_thermal (ARM/embedded).
+HWMON_TEMP=""
+for _d in /sys/class/hwmon/hwmon*; do
+    [[ -r "$_d/name" ]] || continue
+    read -r _name < "$_d/name"
+    case "$_name" in
+        k10temp|zenpower|coretemp|cpu_thermal)
+            [[ -r "$_d/temp1_input" ]] && { HWMON_TEMP="$_d/temp1_input"; break; } ;;
+    esac
+done
 
 prev_total=0; prev_idle=0
 # /proc/stat -> %CPU. <1 ms. Called every int_cpu seconds.

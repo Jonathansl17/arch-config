@@ -4,7 +4,12 @@ pgrep -x sxhkd > /dev/null || sxhkd &
 
 xsetroot -cursor_name left_ptr
 
-# Monitors: enables any connected HDMI-* to the right of eDP.
+# Detect the internal display (eDP / eDP-1 / LVDS / DSI). Falls back to the
+# first connected output so this works on laptops and desktops alike.
+primary=$(xrandr --query | awk '/^(eDP|LVDS|DSI)[A-Za-z0-9-]* connected/ {print $1; exit}')
+[ -z "$primary" ] && primary=$(xrandr --query | awk '/ connected/ {print $1; exit}')
+
+# Monitors: enables any connected HDMI-* to the right of the primary display.
 hdmi=$(xrandr --query | awk '/^HDMI-[0-9-]+ connected/ {print $1; exit}')
 if [ -n "$hdmi" ]; then
     # Preferred mode + max refresh rate on the external monitor. The first
@@ -16,14 +21,14 @@ if [ -n "$hdmi" ]; then
     hdmi_mode=$(echo "$mode_line" | awk '{print $1}')
     hdmi_rate=$(echo "$mode_line" | grep -oP '[0-9]+\.[0-9]+' \
         | sort -t. -k1,1nr -k2,2nr | head -1)
-    xrandr --output eDP --primary --auto \
-           --output "$hdmi" --right-of eDP \
+    xrandr --output "$primary" --primary --auto \
+           --output "$hdmi" --right-of "$primary" \
            ${hdmi_mode:+--mode "$hdmi_mode"} \
            ${hdmi_rate:+--rate "$hdmi_rate"}
-    bspc monitor eDP     -d 1 2 3 4 5       # laptop: super+1..5
-    bspc monitor "$hdmi" -d 6 7 8 9 10      # external: super+6..0
+    bspc monitor "$primary" -d 1 2 3 4 5       # laptop: super+1..5
+    bspc monitor "$hdmi"    -d 6 7 8 9 10      # external: super+6..0
 else
-    bspc monitor -d 1 2 3 4 5 6 7 8 9 10  # no HDMI: all 10 on eDP
+    bspc monitor -d 1 2 3 4 5 6 7 8 9 10  # no HDMI: all 10 on primary
 fi
 
 bspc config presel_feedback      false

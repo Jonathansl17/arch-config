@@ -6,6 +6,13 @@ YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
+# Detect the WiFi interface dynamically (avoids hardcoding wlp4s0/wlan0/etc).
+WIFI_IFACE=$(nmcli -t -f DEVICE,TYPE device | awk -F: '$2 == "wifi" {print $1; exit}')
+if [[ -z "$WIFI_IFACE" ]]; then
+  echo -e "${RED}No WiFi interface detected on this machine.${NC}"
+  exit 1
+fi
+
 # read_input "prompt" [silent]
 # REPLY=text. Returns 2 if user typed q/Q (back).
 read_input() {
@@ -113,7 +120,7 @@ connect_new() {
       local wifi_pass
       read_input "Password (q=back): " 1 || return 2
       wifi_pass="$REPLY"
-      nmcli device wifi connect "$ssid" password "$wifi_pass" ifname wlp4s0
+      nmcli device wifi connect "$ssid" password "$wifi_pass" ifname "$WIFI_IFACE"
       ;;
     3)
       local identity wifi_pass eap phase2 eap_choice
@@ -136,7 +143,7 @@ connect_new() {
           *) invalid ;;
         esac
       done
-      nmcli connection add type wifi con-name "$ssid" ifname wlp4s0 ssid "$ssid" \
+      nmcli connection add type wifi con-name "$ssid" ifname "$WIFI_IFACE" ssid "$ssid" \
         wifi-sec.key-mgmt wpa-eap \
         802-1x.eap "$eap" \
         802-1x.phase2-auth "$phase2" \

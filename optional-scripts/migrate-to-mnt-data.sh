@@ -13,11 +13,23 @@
 set -euo pipefail
 
 DATA="/mnt/data"
-USER_NAME="jony"
-USER_HOME="/home/$USER_NAME"
 
 if [[ $EUID -ne 0 ]]; then
   echo "Run as root: sudo $0"
+  exit 1
+fi
+
+# Resolve the invoking (non-root) user. SUDO_USER is the canonical source when
+# launched via sudo; fall back to logname for sudo -i / su - cases. Refuse to
+# run if we still end up with root, since we'd chown user files to root:root.
+USER_NAME="${SUDO_USER:-$(logname 2>/dev/null || true)}"
+if [[ -z "$USER_NAME" || "$USER_NAME" == "root" ]]; then
+  echo "ERROR: cannot determine the invoking user. Run via 'sudo $0', not as root directly."
+  exit 1
+fi
+USER_HOME=$(getent passwd "$USER_NAME" | cut -d: -f6)
+if [[ -z "$USER_HOME" || ! -d "$USER_HOME" ]]; then
+  echo "ERROR: home directory for $USER_NAME not found."
   exit 1
 fi
 

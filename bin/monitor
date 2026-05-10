@@ -1,9 +1,17 @@
 #!/bin/bash
-# monitor: position external (HDMI/DP) relative to eDP. Idempotent, one-shot.
+# monitor: position external (HDMI/DP) relative to the internal display.
+# Idempotent, one-shot.
 # Usage: monitor -r | -a | --off | --status
 set -eu
 
-PRIMARY="eDP"
+# Detect the internal display dynamically (eDP / eDP-1 / LVDS / DSI). Falls
+# back to the first connected output so this works on any machine.
+PRIMARY=$(xrandr --query | awk '/^(eDP|LVDS|DSI)[A-Za-z0-9-]* connected/ {print $1; exit}')
+[ -z "$PRIMARY" ] && PRIMARY=$(xrandr --query | awk '/ connected/ {print $1; exit}')
+if [ -z "$PRIMARY" ]; then
+    echo "no connected display detected" >&2
+    exit 1
+fi
 
 usage() {
     cat <<EOF
