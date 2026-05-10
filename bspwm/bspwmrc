@@ -39,5 +39,5 @@ bspc config focused_border_color "#FFFFFF"
 bspc rule -a split_term state=tiled layer=normal
 
 # LEMONBAR-START
-/lemonbar/watcher.sh &
+/lemonbar/bar &
 # LEMONBAR-END

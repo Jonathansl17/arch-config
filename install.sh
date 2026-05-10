@@ -183,26 +183,25 @@ fi
 say "Building bspwm-desktops (direct socket, no bspc)"
 gcc -O2 -Wall -o "$REPO_DIR/lemonbar/bspwm-desktops" "$REPO_DIR/lemonbar/bspwm-desktops.c"
 
-say "Deploying /lemonbar scripts + binary"
+say "Deploying /lemonbar binaries"
 if [[ ! -d /lemonbar ]]; then
     sudo mkdir -p /lemonbar
 fi
 sudo chown "$USER:$USER" /lemonbar
 
-# Stop the running bar first; otherwise cp on /lemonbar/bspwm-desktops
-# fails with "Text file busy" because the binary is in use.
-pkill -f '/lemonbar/watcher.sh' 2>/dev/null || true
-pkill -f '/lemonbar/bar.sh' 2>/dev/null || true
+# Stop the running bar; otherwise cp/gcc on busy binaries fails with
+# "Text file busy".
+pkill -x bar 2>/dev/null || true
 pkill -x bspwm-desktops 2>/dev/null || true
 pkill -x lemonbar 2>/dev/null || true
-rm -f /tmp/lemonbar-watcher.lock
+rm -f /tmp/lemonbar-bar.lock
 sleep 0.3
 
-cp "$REPO_DIR/lemonbar/bar.sh" \
-   "$REPO_DIR/lemonbar/start.sh" \
-   "$REPO_DIR/lemonbar/watcher.sh" \
-   "$REPO_DIR/lemonbar/bspwm-desktops" /lemonbar/
-chmod +x /lemonbar/*.sh /lemonbar/bspwm-desktops
+# Build bar.c straight into /lemonbar/ (single-file daemon: replaces the old
+# bar.sh + start.sh + watcher.sh trio).
+gcc -O2 -Wall -o /lemonbar/bar "$REPO_DIR/lemonbar/bar.c" -lX11 -lXrandr
+cp "$REPO_DIR/lemonbar/bspwm-desktops" /lemonbar/
+chmod +x /lemonbar/bar /lemonbar/bspwm-desktops
 
 # --- 4d. Build slock from source (custom config: all-black lock screen) ---
 say "Building slock from source"
@@ -289,12 +288,11 @@ if pgrep -x bspwm >/dev/null; then
     pkill -USR1 -x sxhkd 2>/dev/null || true
 
     say "Restarting lemonbar"
-    pkill -f '/lemonbar/watcher.sh' 2>/dev/null || true
-    pkill -f '/lemonbar/bar.sh' 2>/dev/null || true
+    pkill -x bar 2>/dev/null || true
     pkill -x bspwm-desktops 2>/dev/null || true
     pkill -x lemonbar 2>/dev/null || true
-    rm -f /tmp/lemonbar-watcher.lock
-    setsid -f /lemonbar/watcher.sh </dev/null >/dev/null 2>&1
+    rm -f /tmp/lemonbar-bar.lock
+    setsid -f /lemonbar/bar </dev/null >/dev/null 2>&1
 else
     warn "bspwm is not running; lemonbar will start on the next X session"
 fi
