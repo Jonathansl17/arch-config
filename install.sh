@@ -36,6 +36,8 @@ MAPPINGS=(
     "bin/wifi                 $HOME/bin/wifi"
     "nvim/init.lua            $HOME/.config/nvim/init.lua"
     "nvim/ideavimrc           $HOME/.ideavimrc"
+    "nvim/intellij-keymap.xml         $HOME/.config/JetBrains/IntelliJIdea2026.1/keymaps/XWin copy.xml"
+    "nvim/intellij-ide.general.xml    $HOME/.config/JetBrains/IntelliJIdea2026.1/options/ide.general.xml"
 )
 
 read_pkglist() {
@@ -145,8 +147,8 @@ done
 # --- 4. Configs ---
 say "Installing configs from $REPO_DIR"
 for entry in "${MAPPINGS[@]}"; do
-    # shellcheck disable=SC2086
-    install_file $entry
+    read -r src dst <<< "$entry"
+    install_file "$src" "$dst"
 done
 
 # bspwm scripts and local bin scripts must be executable
