@@ -24,42 +24,53 @@ manager.
 
 ## Installation
 
-### One-liner (recommended)
+### One-liner (recommended, pinned to latest stable tag)
+
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Jonathansl17/termclip/master/instalation.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Jonathansl17/termclip/v1.3.2/instalation.sh | TERMCLIP_REF=v1.3.2 bash
 ```
 
-Pin a specific version:
+Tags are immutable, so this URL is not affected by the GitHub raw CDN
+cache that can briefly stall a fresh `master`.
+
+### Track the latest
+
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Jonathansl17/termclip/v1.1.2/instalation.sh | TERMCLIP_REF=v1.1.2 bash
+curl -fsSL https://raw.githubusercontent.com/Jonathansl17/termclip/master/instalation.sh | bash
 ```
 
 ### Or clone the repository
+
 ```bash
 git clone https://github.com/Jonathansl17/termclip
 cd termclip
-./instalation.sh
+bash instalation.sh
 ```
 
-### Updating
+## What the installer does
 
-Running the installer again works as an **update**. It will:
+1. Installs `python3` + `PyQt5` if missing (`pacman`, `apt`, `dnf`, or
+   `zypper` — auto-detected; no-op if both are already present).
+2. Creates `~/bin` if missing.
+3. Copies `c.py`, `cc.py`, `cpwd.py`, `v.py` to `~/bin/`.
+4. Writes bash wrappers `c`, `cc`, `cpwd`, `v` to `~/bin/` (`chmod +x`).
+5. Prints a summary.
 
-- refresh the scripts in `~/bin`,
-- stop any running clipboard-owner processes,
-- and rewrite the termclip block in your `~/.bashrc`.
+It does **not** touch `~/.bashrc`, `~/.profile`, or `PATH`. Make sure
+`$HOME/bin` is on your `PATH` — most shells handle this via
+`~/.profile` or `~/.bash_profile`.
 
-Just re-run the same one-liner whenever you want the latest version:
+## Updating
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/Jonathansl17/termclip/master/instalation.sh | bash
-```
+Re-run the installer. It overwrites `~/bin/{c,cc,cpwd,v,c.py,cc.py,cpwd.py,v.py}`
+in place. No accumulated state to clean.
 
 ---
 
 ## Usage
 
 ### `c` — copy files/folders to the clipboard
+
 Copies one or more files/folders to the system clipboard **as files**,
 just like hitting *Copy* in Nautilus.
 
@@ -71,6 +82,7 @@ c file1.txt file2.png some-folder/
 Paste them with `v` in another directory, or with `Ctrl+V` inside Nautilus.
 
 ### `cc` — copy the text content of a file to the clipboard
+
 Reads a file as UTF-8 text and puts its **content** in the clipboard.
 Trailing whitespace and newlines are stripped, so pasting into a shell
 does not auto-execute the command.
@@ -86,6 +98,7 @@ Paste it with **`Ctrl+V`** in any editor, browser or text field, or with
 > the *text inside the file*.
 
 ### `cpwd` — copy the current path to the clipboard
+
 Copies the current working directory (or a given path) to the clipboard
 as plain text. Useful for quickly sharing a path or pasting it in another
 terminal / editor.
@@ -96,6 +109,7 @@ cpwd /etc/nginx   # copies the given path
 ```
 
 ### `v` — paste files from the clipboard
+
 Pastes files previously copied with `c` (or from Nautilus) into the
 current directory. If a file with the same name already exists, a unique
 name is generated (`file_copy.txt`, `file_copy2.txt`, ...).
