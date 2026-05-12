@@ -76,7 +76,8 @@ throughout. The reboot at the end is what actually clears the old modules.
 
 ## If something goes wrong
 
-See the `Rollback` section of `~/.claude/projects/-home-jony/memory/project_nvidia_baseline.md` — notably:
+Rollback options:
 
-- Boot into Ubuntu (systemd-boot entry `ubuntu`) to repair Arch from another system.
+- Boot into another OS (dual-boot entry) to repair Arch from outside.
 - Or Arch live USB → chroot → `rm /etc/modprobe.d/blacklist-nouveau.conf` → `mkinitcpio -P` → reboot.
+- `./install-nvidia.sh --nuke` from a working Arch system wipes everything NVIDIA and reinstalls from scratch.

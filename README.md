@@ -55,6 +55,7 @@ the source of truth. Commit or stash anything local before running.
 | [`xinit/`](xinit/README.md)            | X session startup (`~/.xinitrc`) |
 | [`lemonbar/`](lemonbar/README.md)      | Custom C status bar daemon |
 | [`bin/`](bin/README.md)                | Personal scripts + compiled C tools copied to `~/bin/` |
+| [`termclip/`](termclip/README.md)      | Vendored clipboard utilities (`c`, `cc`, `cpwd`, `v`) |
 | [`nvim/`](nvim/README.md)              | Neovim + IdeaVim config |
 | [`slock/`](slock/README.md)            | Screen locker (built from source) |
 | [`sysctl/`](sysctl/README.md)          | Kernel parameters |

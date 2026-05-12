@@ -8,7 +8,6 @@ and C sources (compiled at install time).
 | Script | Purpose |
 |--------|---------|
 | `b`               | Battery status (capacity, charging state, time-to-empty) |
-| `c`, `cc`, `cpwd`, `v` | termclip clipboard wrappers |
 | `s`               | git stage + Claude-generated commit + push (aborts on secret patterns) |
 | `monitor`         | External display layout: `right-of`, `left-of`, `off`, `status` |
 | `vm`              | Volume + mic status (PipeWire via `wpctl`) |
@@ -16,6 +15,10 @@ and C sources (compiled at install time).
 | `ws`              | Net status snapshot (LAN + WiFi) |
 | `xp`, `xpc`       | xournalpp → PDF helpers |
 | `alacritty-selectall` | vi-mode select-all + clipboard yank |
+
+Clipboard tools `c`, `cc`, `cpwd`, `v` live in [`termclip/`](../termclip/README.md)
+(vendored upstream) — its `instalation.sh` deploys both the Python
+backends and the bash wrappers to `~/bin/`.
 
 ## C sources (compiled by install.sh)
 
