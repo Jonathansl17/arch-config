@@ -50,6 +50,8 @@ Sections:
 - GRUB hidden menu (`GRUB_TIMEOUT=0`, `GRUB_TIMEOUT_STYLE=hidden`); regenerates
   `/boot/grub/grub.cfg`. Hold **Shift** at POST to force the menu.
 - `~/.aws` / `~/aws` chmod 700 if either exists
+- `/mnt/data` fstab `nofail,x-systemd.device-timeout=10` so a dead data
+  disk no longer hangs boot ~90s before dropping to emergency shell
 
 ```bash
 bash ~/arch-config/optional-scripts/system-hardening.sh

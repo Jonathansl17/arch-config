@@ -8,6 +8,7 @@
 #   2. sysctl hardening (kptr_restrict, ptrace_scope, rp_filter, redirects)
 #   3. GRUB hidden menu (boot directly into Arch; hold Shift at POST for menu)
 #   4. ~/.aws and ~/aws permissions to 700 (if either exists)
+#   5. /mnt/data fstab nofail + 10s device timeout (boot survives dead disk)
 #
 # Run from anywhere:
 #   bash ~/arch-config/optional-scripts/system-hardening.sh
@@ -105,6 +106,24 @@ for d in "$HOME/.aws" "$HOME/aws"; do
     applied_any=1
 done
 [[ $applied_any -eq 0 ]] && c_skip "no aws dir found"
+
+#-----------------------------------------------------------------
+c_hdr "5. /mnt/data fstab nofail + device-timeout"
+#-----------------------------------------------------------------
+# Without nofail, a dead /mnt/data disk hangs boot ~90s then drops to
+# emergency shell. With nofail + 10s timeout, boot continues normally
+# and symlinks under ~ just dangle until migrate-to-home.sh fixes them.
+data_line=$(awk '$2=="/mnt/data" {print; exit}' /etc/fstab)
+if [[ -z "$data_line" ]]; then
+    c_skip "/mnt/data not in fstab — skipping"
+elif [[ "$data_line" == *"nofail"* && "$data_line" == *"x-systemd.device-timeout="* ]]; then
+    c_skip "already applied"
+else
+    sudo cp /etc/fstab "/etc/fstab.bak-$TS"
+    sudo sed -i -E 's|(/mnt/data\s+ext4\s+)rw,relatime,x-gvfs-show|\1rw,relatime,nofail,x-systemd.device-timeout=10,x-gvfs-show|' /etc/fstab
+    sudo systemctl daemon-reload
+    c_ok "fstab updated; reboot to verify boot resilience"
+fi
 
 c_hdr "Done"
 echo "Hardening applied. Re-run safely whenever you want."
