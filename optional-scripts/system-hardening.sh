@@ -120,7 +120,23 @@ elif [[ "$data_line" == *"nofail"* && "$data_line" == *"x-systemd.device-timeout
     c_skip "already applied"
 else
     sudo cp /etc/fstab "/etc/fstab.bak-$TS"
-    sudo sed -i -E 's|(/mnt/data\s+ext4\s+)rw,relatime,x-gvfs-show|\1rw,relatime,nofail,x-systemd.device-timeout=10,x-gvfs-show|' /etc/fstab
+    # Option-agnostic: rebuild the options field (column 4) merging in
+    # nofail + x-systemd.device-timeout=10 without assuming the current
+    # set. Preserves whatever other options are already there.
+    sudo awk -v OFS='  ' '
+        $2=="/mnt/data" && $1 !~ /^#/ {
+            n = split($4, opts, ",")
+            has_nofail = 0; has_timeout = 0
+            for (i = 1; i <= n; i++) {
+                if (opts[i] == "nofail") has_nofail = 1
+                if (opts[i] ~ /^x-systemd\.device-timeout=/) has_timeout = 1
+            }
+            if (!has_nofail)  $4 = $4 ",nofail"
+            if (!has_timeout) $4 = $4 ",x-systemd.device-timeout=10"
+        }
+        { print }
+    ' /etc/fstab | sudo tee /etc/fstab.new >/dev/null \
+        && sudo mv /etc/fstab.new /etc/fstab
     sudo systemctl daemon-reload
     c_ok "fstab updated; reboot to verify boot resilience"
 fi

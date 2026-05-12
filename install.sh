@@ -161,7 +161,23 @@ for sc in s b ws vm xp xpc c cc cpwd v wifi; do
     chmod +x "$HOME/bin/$sc" 2>/dev/null || true
 done
 
-# --- 4b. Build clipcopy (multi-target clipboard for screenshots) ---
+# --- 4b. Build native binaries ---
+# Verify build deps before any gcc invocation. Otherwise a missing
+# package (gcc/pkg-config/gtk3/libx11) explodes mid-flow with a cryptic
+# error. Install whatever is missing via pacman --needed.
+say "Verifying build deps (gcc, pkg-config, gtk3, libx11)"
+build_deps=()
+command -v gcc        >/dev/null 2>&1 || build_deps+=(gcc)
+command -v pkg-config >/dev/null 2>&1 || build_deps+=(pkgconf)
+pacman -Q gtk3   >/dev/null 2>&1 || build_deps+=(gtk3)
+pacman -Q libx11 >/dev/null 2>&1 || build_deps+=(libx11)
+pacman -Q libxrandr >/dev/null 2>&1 || build_deps+=(libxrandr)
+if (( ${#build_deps[@]} > 0 )); then
+    warn "missing build deps: ${build_deps[*]} — installing"
+    sudo pacman -S --needed --noconfirm "${build_deps[@]}"
+fi
+pkg-config --exists gtk+-3.0 || die "gtk+-3.0 pkg-config still missing after install"
+
 say "Building clipcopy"
 mkdir -p "$HOME/bin"
 gcc -O2 -o "$HOME/bin/clipcopy" "$REPO_DIR/bin/clipcopy.c" \

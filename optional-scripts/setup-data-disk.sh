@@ -30,6 +30,19 @@ if ! sudo -v; then
     exit 1
 fi
 
+# Bootstrap binaries we use during partitioning. mkfs.ext4 ships with
+# e2fsprogs (base), but sgdisk/wipefs/partprobe are in gptfdisk/util-linux
+# (util-linux is base). Only gptfdisk may be missing on minimal installs.
+need_pkgs=()
+command -v sgdisk    >/dev/null 2>&1 || need_pkgs+=(gptfdisk)
+command -v wipefs    >/dev/null 2>&1 || need_pkgs+=(util-linux)
+command -v mkfs.ext4 >/dev/null 2>&1 || need_pkgs+=(e2fsprogs)
+if (( ${#need_pkgs[@]} > 0 )); then
+    c_skip "Installing required tools: ${need_pkgs[*]}"
+    sudo pacman -S --needed --noconfirm "${need_pkgs[@]}" \
+        || { c_err "Failed installing ${need_pkgs[*]}"; exit 1; }
+fi
+
 #-----------------------------------------------------------------
 c_hdr "1. Check if /mnt/data already configured"
 #-----------------------------------------------------------------
