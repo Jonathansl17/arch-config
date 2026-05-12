@@ -11,7 +11,7 @@ Optional, idempotent NVIDIA driver installer for this machine (ASUS hybrid lapto
 - `/etc/modprobe.d/blacklist-nouveau.conf` to keep the nouveau kernel module from loading
 - Regenerates initramfs via `mkinitcpio -P`
 
-It does **not** install `nvidia-prime` or `lib32-nvidia-utils` (not needed: no gaming, no PRIME render offload on this setup — NVIDIA only wakes up for CUDA and NVENC).
+It does **not** install `nvidia-prime` or `lib32-nvidia-utils`  
 
 ## When to use
 
