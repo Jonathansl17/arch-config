@@ -19,7 +19,13 @@ RAW_BASE="https://raw.githubusercontent.com/Jonathansl17/termclip/$TERMCLIP_REF"
 # Resolve the script's own directory so vendored .py files are found
 # even when invoked with a relative or absolute path from another cwd
 # (e.g. `bash termclip/instalation.sh` from a parent directory).
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# In curl|bash mode there is no script on disk, so BASH_SOURCE is empty
+# and we leave SCRIPT_DIR empty — the standalone fetch path will run.
+if [ -n "${BASH_SOURCE[0]:-}" ] && [ -f "${BASH_SOURCE[0]}" ]; then
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+else
+  SCRIPT_DIR=""
+fi
 
 fetch_if_missing() {
   local name="$1"
@@ -66,12 +72,16 @@ mkdir -p "$BIN_DIR"
 
 # --- Step 3: Locate python backends ---
 # Prefer .py files sitting next to this script (vendored / cloned repo).
-# Fall back to fetching from GitHub only if they're missing — that path
-# is for curl|bash one-liner installs.
+# Fall back to fetching from GitHub only if SCRIPT_DIR is empty (curl|bash
+# mode) or one of the .py files is missing.
 missing=0
-for f in c.py v.py cc.py cpwd.py; do
-  [ -f "$SCRIPT_DIR/$f" ] || { missing=1; break; }
-done
+if [ -z "$SCRIPT_DIR" ]; then
+  missing=1
+else
+  for f in c.py v.py cc.py cpwd.py; do
+    [ -f "$SCRIPT_DIR/$f" ] || { missing=1; break; }
+  done
+fi
 
 if [ "$missing" -eq 0 ]; then
   SRC_DIR="$SCRIPT_DIR"
