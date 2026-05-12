@@ -2,6 +2,26 @@
 
 Standalone helpers. Not part of `install.sh`. Run only if you want them.
 
+## setup-data-disk.sh
+
+Interactive bootstrap for a fresh PC: partitions a chosen disk as GPT,
+creates ext4 with `LABEL=data`, appends fstab entry with `nofail` +
+`x-systemd.device-timeout=10`, and mounts it at `/mnt/data`.
+
+Safety:
+- Detects the disk hosting `/`, `/home`, `/boot` and refuses to touch them.
+- Lists candidate disks with `[SKIP]` / `[OK]` markers.
+- Requires typing the device path AND `DESTROY` to proceed.
+- Idempotent: if `/mnt/data` already mounted from a `LABEL=data` partition,
+  exits cleanly. If partition exists but unmounted, skips partitioning and
+  only adds fstab + mounts.
+
+```bash
+bash ~/arch-config/optional-scripts/setup-data-disk.sh
+```
+
+Run this **first** on a new PC, then `migrate-to-mnt-data.sh`.
+
 ## migrate-to-mnt-data.sh
 
 Move heavy caches and dev tool stores from `/` and `/home` to `/mnt/data`
