@@ -17,8 +17,8 @@ and C sources (compiled at install time).
 | `alacritty-selectall` | vi-mode select-all + clipboard yank |
 
 Clipboard tools `c`, `cc`, `cpwd`, `v` live in [`termclip/`](../termclip/README.md)
-(vendored upstream) — its `instalation.sh` deploys both the Python
-backends and the bash wrappers to `~/bin/`.
+(vendored upstream, **optional** — not run by `install.sh`). Run
+`bash termclip/instalation.sh` to deploy them to `~/bin/`.
 
 ## C sources (compiled by install.sh)
 

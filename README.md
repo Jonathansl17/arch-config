@@ -55,7 +55,7 @@ the source of truth. Commit or stash anything local before running.
 | [`xinit/`](xinit/README.md)            | X session startup (`~/.xinitrc`) |
 | [`lemonbar/`](lemonbar/README.md)      | Custom C status bar daemon |
 | [`bin/`](bin/README.md)                | Personal scripts + compiled C tools copied to `~/bin/` |
-| [`termclip/`](termclip/README.md)      | Vendored clipboard utilities (`c`, `cc`, `cpwd`, `v`) |
+| [`termclip/`](termclip/README.md)      | **Optional** vendored clipboard utilities (`c`, `cc`, `cpwd`, `v`) — not run by `install.sh` |
 | [`nvim/`](nvim/README.md)              | Neovim + IdeaVim config |
 | [`slock/`](slock/README.md)            | Screen locker (built from source) |
 | [`sysctl/`](sysctl/README.md)          | Kernel parameters |
@@ -71,6 +71,7 @@ Run manually after `install.sh`. Each is idempotent.
 bash optional-scripts/system-hardening.sh         # /boot fmask, sysctl, GRUB, fstab nofail
 bash optional-scripts/setup-data-disk.sh          # partition + mount a second disk as /mnt/data
 sudo bash optional-scripts/migrate-to-mnt-data.sh # offload caches and dev tool stores to /mnt/data
+bash termclip/instalation.sh                      # clipboard utilities: c, cc, cpwd, v
 ./nvidia/install-nvidia.sh                        # NVIDIA dGPU on hybrid laptops
 ```
 

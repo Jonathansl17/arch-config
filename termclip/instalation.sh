@@ -16,6 +16,11 @@ BIN_DIR="$HOME/bin"
 TERMCLIP_REF="${TERMCLIP_REF:-master}"
 RAW_BASE="https://raw.githubusercontent.com/Jonathansl17/termclip/$TERMCLIP_REF"
 
+# Resolve the script's own directory so vendored .py files are found
+# even when invoked with a relative or absolute path from another cwd
+# (e.g. `bash termclip/instalation.sh` from a parent directory).
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 fetch_if_missing() {
   local name="$1"
   if [ ! -f "$name" ]; then
@@ -31,16 +36,46 @@ fetch_if_missing() {
   fi
 }
 
-# --- Step 1: Ensure ~/bin exists ---
+# --- Step 1: Ensure dependencies (python3 + PyQt5) ---
+need_pyqt5=0
+if ! command -v python3 >/dev/null 2>&1; then
+  need_pyqt5=1
+elif ! python3 -c "import PyQt5" >/dev/null 2>&1; then
+  need_pyqt5=1
+fi
+
+if [ "$need_pyqt5" -eq 1 ]; then
+  echo "Installing python3 + PyQt5 via system package manager..."
+  if command -v pacman >/dev/null 2>&1; then
+    sudo pacman -S --needed --noconfirm python python-pyqt5
+  elif command -v apt >/dev/null 2>&1; then
+    sudo apt update -y && sudo apt install -y python3 python3-pyqt5
+  elif command -v dnf >/dev/null 2>&1; then
+    sudo dnf install -y python3 python3-qt5
+  elif command -v zypper >/dev/null 2>&1; then
+    sudo zypper install -y python3 python3-qt5
+  else
+    echo "ERROR: no supported package manager (pacman/apt/dnf/zypper) found." >&2
+    echo "Install python3 + PyQt5 manually, then re-run." >&2
+    exit 1
+  fi
+fi
+
+# --- Step 2: Ensure ~/bin exists ---
 mkdir -p "$BIN_DIR"
 
-# --- Step 2: Fetch python backends if running standalone (curl|bash mode) ---
+# --- Step 3: Locate python backends ---
+# Prefer .py files sitting next to this script (vendored / cloned repo).
+# Fall back to fetching from GitHub only if they're missing — that path
+# is for curl|bash one-liner installs.
 missing=0
 for f in c.py v.py cc.py cpwd.py; do
-  [ -f "$f" ] || { missing=1; break; }
+  [ -f "$SCRIPT_DIR/$f" ] || { missing=1; break; }
 done
 
-if [ "$missing" -eq 1 ]; then
+if [ "$missing" -eq 0 ]; then
+  SRC_DIR="$SCRIPT_DIR"
+else
   WORKDIR="$(mktemp -d)"
   trap 'rm -rf "$WORKDIR"' EXIT
   echo "Standalone mode — fetching backends into $WORKDIR"
@@ -48,10 +83,11 @@ if [ "$missing" -eq 1 ]; then
   for f in c.py v.py cc.py cpwd.py; do
     fetch_if_missing "$f"
   done
+  SRC_DIR="$WORKDIR"
 fi
 
-# --- Step 3: Copy backends + write wrappers ---
-cp -f c.py cc.py cpwd.py v.py "$BIN_DIR/"
+# --- Step 4: Copy backends + write wrappers ---
+cp -f "$SRC_DIR"/c.py "$SRC_DIR"/cc.py "$SRC_DIR"/cpwd.py "$SRC_DIR"/v.py "$BIN_DIR/"
 chmod u+x "$BIN_DIR/c.py" "$BIN_DIR/cc.py" "$BIN_DIR/cpwd.py" "$BIN_DIR/v.py"
 
 cat > "$BIN_DIR/c" <<'EOF'
@@ -114,7 +150,5 @@ echo "  cc file             → Copy text content of a file to clipboard"
 echo "  cpwd [path]         → Copy current (or given) path to clipboard"
 echo "  v                   → Paste files from clipboard"
 echo ""
-echo "Requirements:"
-echo "  - python3 + PyQt5 (install via your package manager if missing)"
-echo "  - $BIN_DIR on your PATH (most shells auto-add this; verify with:"
-echo "    echo \"\$PATH\" | tr ':' '\\n' | grep \"$BIN_DIR\")"
+echo "Note: $BIN_DIR must be on your PATH (most shells auto-add this)."
+echo "      verify with: echo \"\$PATH\" | tr ':' '\\n' | grep \"$BIN_DIR\""
