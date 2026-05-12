@@ -27,7 +27,6 @@ MAPPINGS=(
     "templates/template.xopp  $HOME/templates/template.xopp"
     "bin/alacritty-selectall  $HOME/bin/alacritty-selectall"
     "bin/b                    $HOME/bin/b"
-    "bin/r                    $HOME/bin/r"
     "bin/monitor              $HOME/bin/monitor"
     "bin/s                    $HOME/bin/s"
     "bin/ws                   $HOME/bin/ws"
@@ -173,6 +172,11 @@ say "installed: ~/bin/clipcopy"
 say "Building alacritty-cwd"
 gcc -O2 -Wall -o "$HOME/bin/alacritty-cwd" "$REPO_DIR/bin/alacritty-cwd.c" -lX11
 say "installed: ~/bin/alacritty-cwd"
+
+# --- 4b-quater. Build r (pure /proc top-N, replaces the bash+awk script) ---
+say "Building r"
+gcc -O2 -Wall -o "$HOME/bin/r" "$REPO_DIR/bin/r.c"
+say "installed: ~/bin/r"
 
 # --- 4c. Install lemonbar + /lemonbar scripts (custom status bar) ---
 say "Installing lemonbar-xft-git (forces CC=gcc; clang fails with -march)"
