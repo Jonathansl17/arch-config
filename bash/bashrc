@@ -76,3 +76,4 @@ HISTSIZE=10000
 HISTFILESIZE=20000
 shopt -s histappend cmdhist checkwinsize
 # === end history ===
+alias burpsuite="setsid -f burpsuite >/dev/null 2>&1"
