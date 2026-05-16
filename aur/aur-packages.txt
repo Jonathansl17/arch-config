@@ -13,10 +13,13 @@
 
 android-sdk-cmdline-tools-latest
 brave-bin
+burpsuite
 intellij-idea-ultimate-edition
+jmeter
 k6
 ngrok
 pgadmin4-desktop-bin
+pgadmin4-server-bin
 postman-bin
 python312
 visual-studio-code-bin
