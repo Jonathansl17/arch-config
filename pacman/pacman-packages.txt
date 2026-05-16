@@ -101,6 +101,7 @@ gdb
 docker
 docker-compose
 jdk21-openjdk
+jre-openjdk
 maven
 nodejs
 npm
@@ -128,6 +129,8 @@ tree
 perl-image-exiftool
 zoxide
 fzf
+rsync
+pandoc-cli
 
 # --- Power / hardware monitoring ---
 power-profiles-daemon
@@ -147,3 +150,4 @@ texlive-langspanish
 # --- Fun / eye candy ---
 cmatrix
 nyancat
+asciiquarium

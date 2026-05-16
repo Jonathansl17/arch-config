@@ -13,5 +13,31 @@ if [ -n "$hits" ]; then
     exit 1
 fi
 
-MSG=$(git diff --cached | claude -p "Generate a concise commit message in English for these changes. Respond ONLY with the commit message itself, in English. Do NOT add any author, co-author, signature, attribution, trailers, or mention of Claude/Anthropic/AI.") || exit $?
+if git diff --cached --quiet; then
+    echo "ABORT: no staged changes" >&2
+    exit 1
+fi
+
+RAW=$(git diff --cached | claude -p "Generate a concise commit message in English for these changes. Respond ONLY with the commit message itself, in English. Do NOT wrap it in backticks, code fences, or quotes. Do NOT add any author, co-author, signature, attribution, trailers, or mention of Claude/Anthropic/AI.") || exit $?
+
+# Strip leading/trailing whitespace, code fences (``` lines), and wrapping
+# backticks/quotes that claude -p sometimes adds despite the instructions.
+MSG=$(printf '%s\n' "$RAW" \
+    | sed -e '/^[[:space:]]*```[[:alnum:]]*[[:space:]]*$/d' \
+    | awk 'NF || p {print; p=1}' \
+    | awk 'BEGIN{RS=""; ORS=""} {print}' \
+    | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+
+# Unwrap if the whole message is enclosed in matching backticks or quotes.
+case "$MSG" in
+    \`*\`)   MSG="${MSG#\`}"; MSG="${MSG%\`}" ;;
+    \"*\")   MSG="${MSG#\"}"; MSG="${MSG%\"}" ;;
+    \'*\')   MSG="${MSG#\'}"; MSG="${MSG%\'}" ;;
+esac
+
+if [ -z "$MSG" ]; then
+    echo "ABORT: empty commit message from claude -p" >&2
+    exit 1
+fi
+
 git commit -m "$MSG" && git push
