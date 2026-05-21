@@ -5,7 +5,7 @@
 # Environment lives here (not in ~/.bashrc) so it's set once per login and
 # inherited by every child shell — no idempotence guards, no PATH duplication
 # when bashrc is re-sourced.
-export JAVA_HOME=/usr/lib/jvm/java-21-openjdk
+export JAVA_HOME=/usr/lib/jvm/default
 export ANDROID_HOME=/opt/android-sdk
 export ANDROID_SDK_ROOT=$ANDROID_HOME
 export NVM_DIR="$HOME/.nvm"

@@ -101,7 +101,7 @@ gdb
 docker
 docker-compose
 jdk21-openjdk
-jre-openjdk
+jdk-openjdk
 maven
 nodejs
 npm
