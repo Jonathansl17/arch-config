@@ -6,7 +6,8 @@
 # Strategy:
 #   - Whole ~/.cache → /mnt/data/user/cache (catches ALL XDG-cache apps)
 #   - Heavy dev tool stores (~/.gradle, ~/.m2, ~/.npm, ~/.cargo, etc.)
-#   - System: /var/cache/pacman/pkg, /var/lib/docker
+#   - System: /var/cache/pacman/pkg, /var/lib/docker → /mnt/data/system/* (symlink)
+#   - screenshots stay a REAL dir in /home/<user>/screenshots (never offloaded)
 #
 # Run with all desktop apps closed (browsers, IDEs) to avoid open-file races.
 
@@ -195,13 +196,24 @@ for d in "${USER_DIRS[@]}"; do
 done
 
 echo
-echo "=== User: media dirs (no dot) ==="
-USER_MEDIA_DIRS=(
-  screenshots       # screenshots (Print key)
-)
-for d in "${USER_MEDIA_DIRS[@]}"; do
-  migrate "$USER_HOME/$d" "$DATA/$d" user
-done
+echo "=== User: screenshots (REAL dir in \$HOME, never offloaded) ==="
+SCREENSHOTS_DIR="$USER_HOME/screenshots"
+echo "[*] $SCREENSHOTS_DIR"
+# Screenshots stay on the home disk. If a prior run symlinked ~/screenshots to
+# /mnt/data, pull the data back and restore a plain directory in $HOME.
+if [[ -L "$SCREENSHOTS_DIR" ]]; then
+  cur=$(readlink -f "$SCREENSHOTS_DIR" || true)
+  echo "  [pull]  $SCREENSHOTS_DIR symlink → $cur, restoring real dir"
+  rm "$SCREENSHOTS_DIR"
+  mkdir -p "$SCREENSHOTS_DIR"
+  if [[ -n "$cur" && -d "$cur" ]]; then
+    rsync -aHAX --info=progress2 "$cur/" "$SCREENSHOTS_DIR/"
+    rm -rf "$cur"
+  fi
+else
+  mkdir -p "$SCREENSHOTS_DIR"
+fi
+chown -R "$USER_NAME:$USER_NAME" "$SCREENSHOTS_DIR"
 
 # Update sxhkd Print binding to point at the new screenshots location.
 update_sxhkd_screenshots() {
@@ -219,7 +231,7 @@ update_sxhkd_screenshots() {
   done
   pkill -USR1 sxhkd 2>/dev/null && echo "  [sxhkd] reloaded" || true
 }
-update_sxhkd_screenshots "$DATA/screenshots"
+update_sxhkd_screenshots "$SCREENSHOTS_DIR"
 
 echo
 echo "=== User: heavy ~/.local/share entries ==="

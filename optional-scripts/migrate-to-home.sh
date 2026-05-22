@@ -7,7 +7,10 @@
 # Strategy:
 #   - Whole ~/.cache → /home/<user>/storage/cache (catches ALL XDG-cache apps)
 #   - Heavy dev tool stores (~/.gradle, ~/.m2, ~/.npm, ~/.cargo, etc.)
-#   - System: /var/cache/pacman/pkg, /var/lib/docker
+#   - System stores → /home/<user>/system/* (NOT under /var, NOT under storage/).
+#     pacman.conf CacheDir + docker daemon.json data-root are repointed so /var
+#     stays clean (no symlinks). Data lives entirely in $HOME.
+#   - screenshots → /home/<user>/screenshots as a REAL dir (no symlink)
 #
 # Run with all desktop apps closed (browsers, IDEs) to avoid open-file races.
 
@@ -32,9 +35,86 @@ if [[ -z "$USER_HOME" || ! -d "$USER_HOME" ]]; then
   exit 1
 fi
 DATA="$USER_HOME/storage"
+# Kept directly in $HOME, NOT nested under storage/:
+SYSTEM_DATA="$USER_HOME/system"        # pacman cache, docker data-root
+SCREENSHOTS_DIR="$USER_HOME/screenshots"
 
 mkdir -p "$DATA"
 chown "$USER_NAME:$USER_NAME" "$DATA"
+
+# pull_to_home CURRENT DEST OWNER
+# Move a store's data into $HOME and leave NO symlink behind at CURRENT.
+# Handles CURRENT being: missing | real dir | symlink → anywhere.
+pull_to_home() {
+  local cur_path="$1" dest="$2" owner="${3:-root}"
+  mkdir -p "$dest"
+  if [[ -L "$cur_path" ]]; then
+    local tgt; tgt=$(readlink -f "$cur_path" || true)
+    if [[ "$tgt" == "$dest" ]]; then
+      echo "  [done]  data already at $dest; dropping $cur_path symlink"
+      rm "$cur_path"
+    else
+      if [[ -n "$tgt" && -d "$tgt" ]]; then
+        echo "  [pull]  $cur_path → $tgt, moving contents to $dest"
+        rsync -aHAX --info=progress2 "$tgt/" "$dest/"
+        rm -rf "$tgt"
+      fi
+      rm "$cur_path"
+    fi
+  elif [[ -d "$cur_path" ]]; then
+    echo "  [move]  $cur_path → $dest"
+    rsync -aHAX --info=progress2 "$cur_path/" "$dest/"
+    rm -rf "$cur_path"
+  else
+    echo "  [init]  $dest created (no prior data)"
+  fi
+  if [[ "$owner" == "user" ]]; then
+    chown -R "$USER_NAME:$USER_NAME" "$dest"
+  else
+    chown -R root:root "$dest"
+  fi
+}
+
+# Repoint pacman cache at $1, removing any other active CacheDir lines. Idempotent.
+set_pacman_cachedir() {
+  local dir="$1" conf=/etc/pacman.conf
+  if grep -qE "^[[:space:]]*CacheDir[[:space:]]*=[[:space:]]*${dir}/?[[:space:]]*$" "$conf"; then
+    echo "  [conf]  pacman CacheDir already $dir"
+    return 0
+  fi
+  cp "$conf" "$conf.bak.$(date +%s)"
+  sed -i -E '/^[[:space:]]*CacheDir[[:space:]]*=/d' "$conf"
+  sed -i -E "0,/^\[options\]/s##[options]\nCacheDir = ${dir}/#" "$conf"
+  echo "  [conf]  pacman CacheDir = $dir (backup at $conf.bak.*)"
+}
+
+# Repoint docker data-root at $1, merging into existing daemon.json. Idempotent.
+set_docker_dataroot() {
+  local dir="$1" conf=/etc/docker/daemon.json
+  mkdir -p /etc/docker
+  if [[ -f "$conf" ]]; then
+    cp "$conf" "$conf.bak.$(date +%s)"
+    if command -v jq >/dev/null 2>&1; then
+      local tmp; tmp=$(mktemp)
+      jq --arg d "$dir" '. + {"data-root":$d}' "$conf" >"$tmp" && mv "$tmp" "$conf"
+    elif command -v python3 >/dev/null 2>&1; then
+      python3 - "$conf" "$dir" <<'PY'
+import json,sys
+p,d=sys.argv[1],sys.argv[2]
+try: c=json.load(open(p))
+except Exception: c={}
+c["data-root"]=d
+json.dump(c,open(p,"w"),indent=2)
+PY
+    else
+      echo "  [warn] jq/python3 missing — set data-root manually in $conf"
+      return 0
+    fi
+  else
+    printf '{\n  "data-root": "%s"\n}\n' "$dir" >"$conf"
+  fi
+  echo "  [conf]  docker data-root = $dir"
+}
 
 # Detect dead /mnt/data: entry in fstab but device not mountable.
 # If fstab references /mnt/data and mount fails, comment the entry out and
@@ -127,24 +207,24 @@ migrate() {
 }
 
 echo
-echo "=== System ==="
+echo "=== System (data → \$HOME, /var stays clean) ==="
 
-echo "[1] /var/cache/pacman/pkg"
-migrate /var/cache/pacman/pkg "$DATA/system/pacman-pkg" root
+echo "[1] pacman cache → $SYSTEM_DATA/pacman-pkg"
+pull_to_home /var/cache/pacman/pkg "$SYSTEM_DATA/pacman-pkg" root
+set_pacman_cachedir "$SYSTEM_DATA/pacman-pkg"
 
 echo
-echo "[2] /var/lib/docker"
+echo "[2] docker data-root → $SYSTEM_DATA/docker"
 DOCKER_WAS_RUNNING=0
 if systemctl is-active --quiet docker; then
   systemctl stop docker docker.socket || true
   DOCKER_WAS_RUNNING=1
 fi
-if [[ ! -e /var/lib/docker && ! -L /var/lib/docker ]] && command -v docker >/dev/null 2>&1; then
-  mkdir -p "$DATA/system/docker"
-  ln -s "$DATA/system/docker" /var/lib/docker
-  echo "  [init]  $DATA/system/docker created (docker never ran)"
+if command -v docker >/dev/null 2>&1; then
+  pull_to_home /var/lib/docker "$SYSTEM_DATA/docker" root
+  set_docker_dataroot "$SYSTEM_DATA/docker"
 else
-  migrate /var/lib/docker "$DATA/system/docker" root
+  echo "  [skip]  docker not installed"
 fi
 [[ "$DOCKER_WAS_RUNNING" == "1" ]] && systemctl start docker || true
 
@@ -189,13 +269,23 @@ for d in "${USER_DIRS[@]}"; do
 done
 
 echo
-echo "=== User: media dirs (no dot) ==="
-USER_MEDIA_DIRS=(
-  screenshots       # screenshots (Print key)
-)
-for d in "${USER_MEDIA_DIRS[@]}"; do
-  migrate "$USER_HOME/$d" "$DATA/$d" user
-done
+echo "=== User: screenshots (REAL dir in \$HOME, no symlink) ==="
+echo "[*] $SCREENSHOTS_DIR"
+# If a prior run symlinked ~/screenshots → storage, pull the data back and
+# restore it as a plain directory living directly in $HOME.
+if [[ -L "$SCREENSHOTS_DIR" ]]; then
+  cur=$(readlink -f "$SCREENSHOTS_DIR" || true)
+  echo "  [pull]  $SCREENSHOTS_DIR symlink → $cur, restoring real dir"
+  rm "$SCREENSHOTS_DIR"
+  mkdir -p "$SCREENSHOTS_DIR"
+  if [[ -n "$cur" && -d "$cur" ]]; then
+    rsync -aHAX --info=progress2 "$cur/" "$SCREENSHOTS_DIR/"
+    rm -rf "$cur"
+  fi
+else
+  mkdir -p "$SCREENSHOTS_DIR"
+fi
+chown -R "$USER_NAME:$USER_NAME" "$SCREENSHOTS_DIR"
 
 # Update sxhkd Print binding to point at the new screenshots location.
 update_sxhkd_screenshots() {
@@ -213,7 +303,7 @@ update_sxhkd_screenshots() {
   done
   pkill -USR1 sxhkd 2>/dev/null && echo "  [sxhkd] reloaded" || true
 }
-update_sxhkd_screenshots "$DATA/screenshots"
+update_sxhkd_screenshots "$SCREENSHOTS_DIR"
 
 echo
 echo "=== User: heavy ~/.local/share entries ==="
@@ -233,23 +323,28 @@ echo
 echo "=== Done ==="
 df -hT / "$USER_HOME" "$DATA"
 echo
-echo "Active symlinks:"
+echo "System stores (data in \$HOME, /var clean):"
 {
-  ls -la /var/cache/pacman/pkg /var/lib/docker 2>/dev/null
+  echo "  pacman CacheDir : $(grep -E '^[[:space:]]*CacheDir' /etc/pacman.conf 2>/dev/null | tail -1)"
+  echo "  docker data-root: $(grep -E 'data-root' /etc/docker/daemon.json 2>/dev/null | tr -d ' ')"
+  ls -lad "$SYSTEM_DATA"/* "$SCREENSHOTS_DIR" 2>/dev/null
+}
+echo
+echo "Active symlinks (user cache/dev stores → storage):"
+{
   find "$USER_HOME" -maxdepth 1 -type l 2>/dev/null
   find "$USER_HOME/.local/share" -maxdepth 1 -type l 2>/dev/null
 } | sort -u
 
 cat <<EOF
 
-Future caches/data automatically land on $DATA via symlinks.
-For NEW tools: most respect XDG_CACHE_HOME (~/.cache, now linked) so they
-inherit the redirect. If a tool uses its own dir under ~/, add it to USER_DIRS
-and re-run this script.
+screenshots + system stores live DIRECTLY in $USER_HOME (no /var symlinks).
+User caches/dev stores still redirect to $DATA via symlinks; most NEW tools
+respect XDG_CACHE_HOME (~/.cache, linked) so they inherit that. If a tool uses
+its own dir under ~/, add it to USER_DIRS and re-run this script.
 
-Revert one item:
-  systemctl stop <service>     # if applicable
-  rm <symlink>
-  mv $DATA/<path> <original>
+Revert system store to /var:
+  pacman : remove CacheDir line in /etc/pacman.conf, mv $SYSTEM_DATA/pacman-pkg /var/cache/pacman/pkg
+  docker : systemctl stop docker; drop data-root in /etc/docker/daemon.json; mv $SYSTEM_DATA/docker /var/lib/docker; systemctl start docker
 
 EOF
