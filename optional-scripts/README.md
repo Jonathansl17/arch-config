@@ -43,9 +43,12 @@ sudo ./migrate-to-mnt-data.sh
 
 ## migrate-to-home.sh
 
-Mirror of the above. Moves the same paths to `~/storage/...` instead of
-`/mnt/data`. Use if `/mnt/data` is gone or to consolidate everything back
-on the Arch disk.
+Flattens caches/dev stores directly under `$HOME` (no nesting). Targets:
+`~/pacman-pkg`, `~/docker`, `~/cache`, `~/<devtool>` (dot stripped from
+`~/.gradle`, `~/.m2`, ...), `~/share-<name>` for `~/.local/share/*`.
+User dotdirs become symlinks to their flat target. Use to consolidate
+everything on the Arch disk; cleans up legacy `~/storage` and `~/system`
+nests if present.
 
 ```bash
 sudo ./migrate-to-home.sh
