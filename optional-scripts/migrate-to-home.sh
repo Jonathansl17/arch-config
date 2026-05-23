@@ -88,6 +88,35 @@ set_pacman_cachedir() {
   echo "  [conf]  pacman CacheDir = $dir (backup at $conf.bak.*)"
 }
 
+# Grant the alpm sandbox user access to a pacman CacheDir under $HOME. Pacman
+# drops privs from root to alpm when downloading (DownloadUser = alpm, default
+# since pacman 7.x), so alpm needs:
+#   - ownership of the cache dir itself (to create download-XXXX/*.part files)
+#   - traverse (+x) on every parent dir up to / — $HOME is 700 by default, so
+#     without an ACL alpm cannot even enter it
+# ACL is used instead of chmod o+x so other users still cannot traverse $HOME.
+# Idempotent: setfacl is a no-op if the entry already exists.
+grant_alpm_pacman_access() {
+  local dir="$1"
+  if ! id alpm >/dev/null 2>&1; then
+    echo "  [skip]  alpm user not present; nothing to grant"
+    return 0
+  fi
+  if ! command -v setfacl >/dev/null 2>&1; then
+    echo "  [warn]  setfacl missing (install 'acl'); pacman will fail to download into $dir"
+    return 0
+  fi
+  chown -R alpm:alpm "$dir"
+  # Walk from $dir's parent up to (but not including) /, granting alpm traverse.
+  local p
+  p=$(dirname "$dir")
+  while [[ "$p" != "/" && -n "$p" ]]; do
+    setfacl -m u:alpm:x "$p"
+    p=$(dirname "$p")
+  done
+  echo "  [acl]   alpm granted traverse on parents of $dir; owns $dir"
+}
+
 # Repoint docker data-root at $1, merging into existing daemon.json. Idempotent.
 set_docker_dataroot() {
   local dir="$1" conf=/etc/docker/daemon.json
@@ -212,6 +241,7 @@ echo "=== System (data → \$HOME, /var stays clean) ==="
 echo "[1] pacman cache → $SYSTEM_DATA/pacman-pkg"
 pull_to_home /var/cache/pacman/pkg "$SYSTEM_DATA/pacman-pkg" root
 set_pacman_cachedir "$SYSTEM_DATA/pacman-pkg"
+grant_alpm_pacman_access "$SYSTEM_DATA/pacman-pkg"
 
 echo
 echo "[2] docker data-root → $SYSTEM_DATA/docker"
