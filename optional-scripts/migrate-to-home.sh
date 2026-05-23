@@ -1,16 +1,14 @@
 #!/usr/bin/env bash
-# Mirror of migrate-to-mnt-data.sh — moves caches/heavy data BACK TO /home.
-# Use if /mnt/data dies, or you want everything consolidated on the Arch disk.
-# Future writes auto-go to /home/<user>/storage because originals are symlinks.
-# Idempotent. Safe to re-run.
+# Flatten caches/heavy data into $HOME with NO nesting.
+# Targets (all directly under $HOME):
+#   - System stores: ~/pacman-pkg, ~/docker
+#   - User cache:    ~/cache       (symlinked from ~/.cache)
+#   - Dev tool dirs: ~/<name>      (symlinked from ~/.<name>, dot stripped)
+#   - Share entries: ~/share-<name> (symlinked from ~/.local/share/<name>)
+#   - Screenshots:   ~/screenshots (REAL dir, no symlink)
 #
-# Strategy:
-#   - Whole ~/.cache → /home/<user>/storage/cache (catches ALL XDG-cache apps)
-#   - Heavy dev tool stores (~/.gradle, ~/.m2, ~/.npm, ~/.cargo, etc.)
-#   - System stores → /home/<user>/system/* (NOT under /var, NOT under storage/).
-#     pacman.conf CacheDir + docker daemon.json data-root are repointed so /var
-#     stays clean (no symlinks). Data lives entirely in $HOME.
-#   - screenshots → /home/<user>/screenshots as a REAL dir (no symlink)
+# Idempotent. Safe to re-run. Handles migration from prior nested layouts
+# (~/storage/user/..., ~/system/...) and from /var-based defaults.
 #
 # Run with all desktop apps closed (browsers, IDEs) to avoid open-file races.
 
@@ -21,9 +19,6 @@ if [[ $EUID -ne 0 ]]; then
   exit 1
 fi
 
-# Resolve the invoking (non-root) user. SUDO_USER is the canonical source when
-# launched via sudo; fall back to logname for sudo -i / su - cases. Refuse to
-# run if we still end up with root, since we'd chown user files to root:root.
 USER_NAME="${SUDO_USER:-$(logname 2>/dev/null || true)}"
 if [[ -z "$USER_NAME" || "$USER_NAME" == "root" ]]; then
   echo "ERROR: cannot determine the invoking user. Run via 'sudo $0', not as root directly."
@@ -34,39 +29,34 @@ if [[ -z "$USER_HOME" || ! -d "$USER_HOME" ]]; then
   echo "ERROR: home directory for $USER_NAME not found."
   exit 1
 fi
-DATA="$USER_HOME/storage"
-# Kept directly in $HOME, NOT nested under storage/:
-SYSTEM_DATA="$USER_HOME/system"        # pacman cache, docker data-root
 SCREENSHOTS_DIR="$USER_HOME/screenshots"
 
-mkdir -p "$DATA"
-chown "$USER_NAME:$USER_NAME" "$DATA"
-
-# pull_to_home CURRENT DEST OWNER
-# Move a store's data into $HOME and leave NO symlink behind at CURRENT.
-# Handles CURRENT being: missing | real dir | symlink → anywhere.
-pull_to_home() {
-  local cur_path="$1" dest="$2" owner="${3:-root}"
-  mkdir -p "$dest"
-  if [[ -L "$cur_path" ]]; then
-    local tgt; tgt=$(readlink -f "$cur_path" || true)
-    if [[ "$tgt" == "$dest" ]]; then
-      echo "  [done]  data already at $dest; dropping $cur_path symlink"
-      rm "$cur_path"
-    else
-      if [[ -n "$tgt" && -d "$tgt" ]]; then
-        echo "  [pull]  $cur_path → $tgt, moving contents to $dest"
-        rsync -aHAX --info=progress2 "$tgt/" "$dest/"
-        rm -rf "$tgt"
-      fi
-      rm "$cur_path"
+# move_existing SRC DEST OWNER
+# Move a real directory at SRC into DEST. No-op if SRC missing or equals DEST.
+# Used for system stores where the active path is configured elsewhere (pacman
+# CacheDir, docker data-root) and may already be outside /var.
+move_existing() {
+  local src="$1" dest="$2" owner="${3:-root}"
+  [[ -z "$src" ]] && return 0
+  src="${src%/}"
+  dest="${dest%/}"
+  [[ "$src" == "$dest" ]] && return 0
+  if [[ -L "$src" ]]; then
+    local tgt; tgt=$(readlink -f "$src" || true)
+    if [[ -n "$tgt" && -d "$tgt" && "$tgt" != "$dest" ]]; then
+      mkdir -p "$dest"
+      echo "  [pull]  $src → $tgt, moving to $dest"
+      rsync -aHAX --info=progress2 "$tgt/" "$dest/"
+      rm -rf "$tgt"
     fi
-  elif [[ -d "$cur_path" ]]; then
-    echo "  [move]  $cur_path → $dest"
-    rsync -aHAX --info=progress2 "$cur_path/" "$dest/"
-    rm -rf "$cur_path"
+    rm -f "$src"
+  elif [[ -d "$src" ]]; then
+    mkdir -p "$dest"
+    echo "  [move]  $src → $dest"
+    rsync -aHAX --info=progress2 "$src/" "$dest/"
+    rm -rf "$src"
   else
-    echo "  [init]  $dest created (no prior data)"
+    return 0
   fi
   if [[ "$owner" == "user" ]]; then
     chown -R "$USER_NAME:$USER_NAME" "$dest"
@@ -88,14 +78,13 @@ set_pacman_cachedir() {
   echo "  [conf]  pacman CacheDir = $dir (backup at $conf.bak.*)"
 }
 
-# Grant the alpm sandbox user access to a pacman CacheDir under $HOME. Pacman
-# drops privs from root to alpm when downloading (DownloadUser = alpm, default
-# since pacman 7.x), so alpm needs:
-#   - ownership of the cache dir itself (to create download-XXXX/*.part files)
-#   - traverse (+x) on every parent dir up to / — $HOME is 700 by default, so
-#     without an ACL alpm cannot even enter it
-# ACL is used instead of chmod o+x so other users still cannot traverse $HOME.
-# Idempotent: setfacl is a no-op if the entry already exists.
+# Read current pacman CacheDir (first active, non-commented). Empty if none.
+current_pacman_cachedir() {
+  grep -E '^[[:space:]]*CacheDir[[:space:]]*=' /etc/pacman.conf 2>/dev/null \
+    | head -1 | sed -E 's|^[[:space:]]*CacheDir[[:space:]]*=[[:space:]]*||; s|[[:space:]]*$||; s|/$||'
+}
+
+# Grant the alpm sandbox user access to a pacman CacheDir under $HOME.
 grant_alpm_pacman_access() {
   local dir="$1"
   if ! id alpm >/dev/null 2>&1; then
@@ -107,7 +96,6 @@ grant_alpm_pacman_access() {
     return 0
   fi
   chown -R alpm:alpm "$dir"
-  # Walk from $dir's parent up to (but not including) /, granting alpm traverse.
   local p
   p=$(dirname "$dir")
   while [[ "$p" != "/" && -n "$p" ]]; do
@@ -145,9 +133,18 @@ PY
   echo "  [conf]  docker data-root = $dir"
 }
 
+# Read current docker data-root from daemon.json. Empty if none.
+current_docker_dataroot() {
+  local conf=/etc/docker/daemon.json
+  [[ -f "$conf" ]] || return 0
+  if command -v jq >/dev/null 2>&1; then
+    jq -r '."data-root" // empty' "$conf" 2>/dev/null
+  else
+    sed -nE 's|.*"data-root"[[:space:]]*:[[:space:]]*"([^"]+)".*|\1|p' "$conf" | head -1
+  fi
+}
+
 # Detect dead /mnt/data: entry in fstab but device not mountable.
-# If fstab references /mnt/data and mount fails, comment the entry out and
-# remove the empty mountpoint so dangling symlinks can be cleanly fixed.
 clean_dead_mnt_data() {
   local mp="/mnt/data"
   if ! grep -qE "^[^#].*[[:space:]]${mp}[[:space:]]" /etc/fstab; then
@@ -176,7 +173,7 @@ clean_dead_mnt_data
 cat <<WARN
 === WARNING ===
 Close browsers, IDEs (VSCode/IntelliJ), and any heavy app before continuing.
-This script moves ~/.cache and dev tool dirs to $DATA.
+This script flattens caches/dev stores directly under $USER_HOME.
 Open file handles can cause inconsistencies.
 
 WARN
@@ -236,23 +233,33 @@ migrate() {
 }
 
 echo
-echo "=== System (data → \$HOME, /var stays clean) ==="
+echo "=== System (flat in \$HOME, /var stays clean) ==="
 
-echo "[1] pacman cache → $SYSTEM_DATA/pacman-pkg"
-pull_to_home /var/cache/pacman/pkg "$SYSTEM_DATA/pacman-pkg" root
-set_pacman_cachedir "$SYSTEM_DATA/pacman-pkg"
-grant_alpm_pacman_access "$SYSTEM_DATA/pacman-pkg"
+echo "[1] pacman cache → $USER_HOME/pacman-pkg"
+PACMAN_DEST="$USER_HOME/pacman-pkg"
+PACMAN_CUR=$(current_pacman_cachedir)
+# Move from currently-configured CacheDir first (e.g. ~/system/pacman-pkg).
+move_existing "$PACMAN_CUR" "$PACMAN_DEST" root
+# Also handle /var default in case nothing was repointed yet.
+move_existing /var/cache/pacman/pkg "$PACMAN_DEST" root
+mkdir -p "$PACMAN_DEST"
+set_pacman_cachedir "$PACMAN_DEST"
+grant_alpm_pacman_access "$PACMAN_DEST"
 
 echo
-echo "[2] docker data-root → $SYSTEM_DATA/docker"
+echo "[2] docker data-root → $USER_HOME/docker"
+DOCKER_DEST="$USER_HOME/docker"
 DOCKER_WAS_RUNNING=0
 if systemctl is-active --quiet docker; then
   systemctl stop docker docker.socket || true
   DOCKER_WAS_RUNNING=1
 fi
 if command -v docker >/dev/null 2>&1; then
-  pull_to_home /var/lib/docker "$SYSTEM_DATA/docker" root
-  set_docker_dataroot "$SYSTEM_DATA/docker"
+  DOCKER_CUR=$(current_docker_dataroot)
+  move_existing "$DOCKER_CUR" "$DOCKER_DEST" root
+  move_existing /var/lib/docker "$DOCKER_DEST" root
+  mkdir -p "$DOCKER_DEST"
+  set_docker_dataroot "$DOCKER_DEST"
 else
   echo "  [skip]  docker not installed"
 fi
@@ -260,11 +267,11 @@ fi
 
 echo
 echo "=== User: whole ~/.cache ==="
-echo "[3] $USER_HOME/.cache (catches ALL XDG-cache apps)"
-migrate "$USER_HOME/.cache" "$DATA/user/cache" user
+echo "[3] $USER_HOME/.cache → $USER_HOME/cache"
+migrate "$USER_HOME/.cache" "$USER_HOME/cache" user
 
 echo
-echo "=== User: dev tool stores ==="
+echo "=== User: dev tool stores (~/.<name> → ~/<name>) ==="
 USER_DIRS=(
   .gradle           # Java/Gradle
   .m2               # Maven
@@ -284,7 +291,7 @@ USER_DIRS=(
   .deno             # Deno
   .bun              # Bun runtime
   .yarn             # Yarn
-  .pnpm-store       # pnpm content-addressable store (rare alt location)
+  .pnpm-store       # pnpm content-addressable store
   .ollama           # Ollama models (huge)
   .lmstudio         # LM Studio
   .pyenv            # pyenv
@@ -295,14 +302,14 @@ USER_DIRS=(
   .vagrant.d        # Vagrant
 )
 for d in "${USER_DIRS[@]}"; do
-  migrate "$USER_HOME/$d" "$DATA/user/home-dirs/$d" user
+  # Strip leading dot: .gradle → gradle
+  flat="${d#.}"
+  migrate "$USER_HOME/$d" "$USER_HOME/$flat" user
 done
 
 echo
 echo "=== User: screenshots (REAL dir in \$HOME, no symlink) ==="
 echo "[*] $SCREENSHOTS_DIR"
-# If a prior run symlinked ~/screenshots → storage, pull the data back and
-# restore it as a plain directory living directly in $HOME.
 if [[ -L "$SCREENSHOTS_DIR" ]]; then
   cur=$(readlink -f "$SCREENSHOTS_DIR" || true)
   echo "  [pull]  $SCREENSHOTS_DIR symlink → $cur, restoring real dir"
@@ -336,7 +343,7 @@ update_sxhkd_screenshots() {
 update_sxhkd_screenshots "$SCREENSHOTS_DIR"
 
 echo
-echo "=== User: heavy ~/.local/share entries ==="
+echo "=== User: heavy ~/.local/share entries (→ ~/share-<name>) ==="
 SHARE_DIRS=(
   pnpm
   JetBrains
@@ -346,21 +353,39 @@ SHARE_DIRS=(
   containers
 )
 for d in "${SHARE_DIRS[@]}"; do
-  migrate "$USER_HOME/.local/share/$d" "$DATA/user/share/$d" user
+  migrate "$USER_HOME/.local/share/$d" "$USER_HOME/share-$d" user
 done
 
 echo
-echo "=== Done ==="
-df -hT / "$USER_HOME" "$DATA"
+echo "=== Cleanup empty legacy nests (~/storage, ~/system) ==="
+cleanup_empty_tree() {
+  local root="$1"
+  [[ -d "$root" ]] || return 0
+  # Remove empty dirs depth-first. find -empty + -delete is safe: only removes
+  # truly-empty dirs and leaves anything non-empty intact.
+  find "$root" -depth -type d -empty -delete 2>/dev/null || true
+  if [[ -d "$root" ]]; then
+    echo "  [keep]  $root still has files, not removing"
+    ls -la "$root" | head -20
+  else
+    echo "  [gone]  $root removed"
+  fi
+}
+cleanup_empty_tree "$USER_HOME/storage"
+cleanup_empty_tree "$USER_HOME/system"
+
 echo
-echo "System stores (data in \$HOME, /var clean):"
+echo "=== Done ==="
+df -hT / "$USER_HOME"
+echo
+echo "System stores (flat in \$HOME):"
 {
   echo "  pacman CacheDir : $(grep -E '^[[:space:]]*CacheDir' /etc/pacman.conf 2>/dev/null | tail -1)"
   echo "  docker data-root: $(grep -E 'data-root' /etc/docker/daemon.json 2>/dev/null | tr -d ' ')"
-  ls -lad "$SYSTEM_DATA"/* "$SCREENSHOTS_DIR" 2>/dev/null
+  ls -lad "$PACMAN_DEST" "$DOCKER_DEST" "$SCREENSHOTS_DIR" 2>/dev/null
 }
 echo
-echo "Active symlinks (user cache/dev stores → storage):"
+echo "Active symlinks (user dotdirs → flat \$HOME targets):"
 {
   find "$USER_HOME" -maxdepth 1 -type l 2>/dev/null
   find "$USER_HOME/.local/share" -maxdepth 1 -type l 2>/dev/null
@@ -368,13 +393,12 @@ echo "Active symlinks (user cache/dev stores → storage):"
 
 cat <<EOF
 
-screenshots + system stores live DIRECTLY in $USER_HOME (no /var symlinks).
-User caches/dev stores still redirect to $DATA via symlinks; most NEW tools
-respect XDG_CACHE_HOME (~/.cache, linked) so they inherit that. If a tool uses
-its own dir under ~/, add it to USER_DIRS and re-run this script.
+Everything now lives directly under $USER_HOME. No /var symlinks, no nested
+~/storage or ~/system. User dotdirs (~/.cache, ~/.gradle, ...) are symlinks
+to flat targets (~/cache, ~/gradle, ...). Share entries point to ~/share-<name>.
 
 Revert system store to /var:
-  pacman : remove CacheDir line in /etc/pacman.conf, mv $SYSTEM_DATA/pacman-pkg /var/cache/pacman/pkg
-  docker : systemctl stop docker; drop data-root in /etc/docker/daemon.json; mv $SYSTEM_DATA/docker /var/lib/docker; systemctl start docker
+  pacman : remove CacheDir line in /etc/pacman.conf, mv $PACMAN_DEST /var/cache/pacman/pkg
+  docker : systemctl stop docker; drop data-root in /etc/docker/daemon.json; mv $DOCKER_DEST /var/lib/docker; systemctl start docker
 
 EOF
