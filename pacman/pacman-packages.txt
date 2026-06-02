@@ -108,6 +108,7 @@ npm
 postgresql
 python-pyqt5
 python-pipx
+python-pymupdf
 rust
 tk
 android-tools
@@ -146,6 +147,7 @@ texlive-basic
 texlive-latexrecommended
 texlive-latexextra
 texlive-langspanish
+texlive-binextra
 
 # --- Fun / eye candy ---
 cmatrix
