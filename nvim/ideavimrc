@@ -20,10 +20,8 @@ set highlightedyank
 " --- Leader mappings ---
 
 " File tree / navigation
-nnoremap <leader>e :action ActivateProjectToolWindow<CR>
 nnoremap <leader>o :action ActivateProjectToolWindow<CR>
 nnoremap <leader>F :action SelectInProjectView<CR>
-nnoremap <leader>x :action CloseContent<CR>
 nnoremap <Tab> :action NextTab<CR>
 nnoremap <S-Tab> :action PreviousTab<CR>
 
