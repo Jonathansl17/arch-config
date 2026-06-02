@@ -38,6 +38,8 @@ MAPPINGS=(
     "nvim/ideavimrc           $HOME/.ideavimrc"
     "nvim/intellij-keymap.xml         $HOME/.config/JetBrains/IntelliJIdea2026.1/keymaps/XWin copy.xml"
     "nvim/intellij-ide.general.xml    $HOME/.config/JetBrains/IntelliJIdea2026.1/options/ide.general.xml"
+    "vscode/keybindings.json  $HOME/.config/Code/User/keybindings.json"
+    "vscode/settings.json     $HOME/.config/Code/User/settings.json"
 )
 
 read_pkglist() {

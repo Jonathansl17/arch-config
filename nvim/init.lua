@@ -19,11 +19,9 @@ if vim.g.vscode then
   local vscode = require("vscode")
   local map = vim.keymap.set
 
-  map("n", "<leader>e", function() vscode.action("workbench.view.explorer") end, { desc = "Toggle explorer" })
   map("n", "<leader>o", function() vscode.action("workbench.view.explorer") end, { desc = "Focus explorer" })
   map("n", "<leader>f", function() vscode.action("workbench.action.quickOpen") end, { desc = "Quick open file" })
   map("n", "<leader>F", function() vscode.action("workbench.files.action.showActiveFileInExplorer") end, { desc = "Reveal current file" })
-  map("n", "<leader>x", function() vscode.action("workbench.action.closeActiveEditor") end, { desc = "Close editor" })
 
   map("n", "<leader>n", function() vscode.action("editor.action.rename") end, { desc = "Rename symbol" })
   map({ "n", "v" }, "<leader>ca", function() vscode.action("editor.action.quickFix") end, { desc = "Code action" })

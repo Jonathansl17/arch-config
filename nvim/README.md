@@ -34,10 +34,9 @@ JetBrains IDEs.
 
 | Keys             | Action                          |
 |------------------|---------------------------------|
-| `<leader>e` / `<leader>o` | Toggle / focus explorer |
+| `<leader>o`      | Focus explorer                  |
 | `<leader>f`      | Quick open file (fuzzy)         |
 | `<leader>F`      | Reveal current file in explorer |
-| `<leader>x`      | Close editor                    |
 | `<leader>n`      | Rename symbol                   |
 | `<leader>ca`     | Code action / quick fix         |
 | `gd`             | Go to definition                |
@@ -45,6 +44,9 @@ JetBrains IDEs.
 | `gi`             | Go to implementation            |
 | `K`              | Show hover (docs)               |
 | `[d` / `]d`      | Prev / next diagnostic          |
+
+Explorer toggle / sidebar in VS Code is handled by native keybindings
+(`alt+e`, `alt+r`), not this block — see `../vscode/README.md`.
 
 ## IdeaVim extras (`ideavimrc`)
 
