@@ -1,0 +1,56 @@
+#!/bin/bash
+# Print CPU/GPU temperatures and fan speeds. Reads directly from
+# /sys/class/hwmon so we don't depend on lm_sensors and don't hardcode chip
+# IDs like k10temp-pci-00c3 (the PCI suffix varies between machines) or hwmon
+# indices (hwmonN ordering changes between boots). We match by chip name and,
+# for fans, by the per-channel *_label.
+#   CPU temp : k10temp/zenpower (AMD), coretemp (Intel), cpu_thermal (ARM)
+#   GPU temp : amdgpu (AMD), or nvidia-smi (NVIDIA)
+#   Fans     : asus chip, channels labelled cpu_fan / gpu_fan
+
+cpu_temp="--"
+gpu_temp="--"
+cpu_fan="--"
+gpu_fan="--"
+
+# Format a millidegree reading as e.g. "67.3"
+fmt_temp() { printf '%d.%d' $(($1 / 1000)) $((($1 % 1000) / 100)); }
+
+for d in /sys/class/hwmon/hwmon*; do
+    [ -r "$d/name" ] || continue
+    read -r name < "$d/name"
+    case "$name" in
+        k10temp|zenpower|coretemp|cpu_thermal)
+            if [ -r "$d/temp1_input" ]; then
+                read -r raw < "$d/temp1_input"
+                cpu_temp=$(fmt_temp "$raw")
+            fi ;;
+        amdgpu)
+            if [ -r "$d/temp1_input" ]; then
+                read -r raw < "$d/temp1_input"
+                gpu_temp=$(fmt_temp "$raw")
+            fi ;;
+        asus)
+            # Walk fan channels and match by label
+            for lbl in "$d"/fan*_label; do
+                [ -r "$lbl" ] || continue
+                read -r flabel < "$lbl"
+                input="${lbl%_label}_input"
+                [ -r "$input" ] || continue
+                read -r rpm < "$input"
+                case "$flabel" in
+                    cpu_fan) cpu_fan="$rpm" ;;
+                    gpu_fan) gpu_fan="$rpm" ;;
+                esac
+            done ;;
+    esac
+done
+
+# NVIDIA fallback when no amdgpu temp was found
+if [ "$gpu_temp" = "--" ] && command -v nvidia-smi >/dev/null 2>&1; then
+    n=$(nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader,nounits 2>/dev/null | head -n1)
+    [ -n "$n" ] && gpu_temp="$n.0"
+fi
+
+printf 'CPU: %s°C  GPU: %s°C\n' "$cpu_temp" "$gpu_temp"
+printf 'Fan CPU: %s RPM  Fan GPU: %s RPM\n' "$cpu_fan" "$gpu_fan"
