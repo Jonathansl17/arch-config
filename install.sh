@@ -253,6 +253,17 @@ else
     say "pnpm already present at $PNPM_HOME/pnpm (skipping)"
 fi
 
+# --- 4e-ter. Claude Code (via official install script) ---
+# Native installer drops the binary at ~/.local/bin/claude (symlink into
+# ~/.local/share/claude/versions/). NOT installed via npm. Self-updates with
+# `claude update`, so we only run the installer when the binary is missing.
+if [[ ! -x "$HOME/.local/bin/claude" ]]; then
+    say "Installing Claude Code via claude.ai/install.sh"
+    curl -fsSL https://claude.ai/install.sh | bash
+else
+    say "Claude Code already present at ~/.local/bin/claude (skipping)"
+fi
+
 # --- 4f. sysctl tweaks ---
 say "Installing sysctl configs"
 sudo cp "$REPO_DIR/sysctl/99-swappiness.conf" /etc/sysctl.d/99-swappiness.conf
