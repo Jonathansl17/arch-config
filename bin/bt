@@ -6,7 +6,14 @@ YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
-SCAN_SECS=8
+# Classic (BR/EDR) inquiry needs ~10s; LE advertising shows up in a couple.
+# Some controllers starve classic inquiry under the "auto" transport, so we
+# scan each transport explicitly instead of a single `scan on`.
+SCAN_BREDR_SECS=12
+SCAN_LE_SECS=4
+
+# Match a Bluetooth MAC (AA:BB:CC:DD:EE:FF) to drop noise lines from output.
+MAC_RE='^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$'
 
 if ! command -v bluetoothctl >/dev/null 2>&1; then
   echo -e "${RED}bluetoothctl not found. Install bluez-utils.${NC}"
@@ -55,7 +62,7 @@ ensure_powered() {
 connected_devices() {
   local mac name
   while read -r _ mac name; do
-    [[ -z "$mac" ]] && continue
+    [[ "$mac" =~ $MAC_RE ]] || continue
     if bluetoothctl info "$mac" 2>/dev/null | grep -q "Connected: yes"; then
       printf '%s\t%s\n' "$mac" "$name"
     fi
@@ -87,15 +94,29 @@ show_status() {
 scan_connect() {
   local devices=() mac name line net_choice
   ensure_powered
+  # Make this PC visible + pairable so phones/2-way devices can find it,
+  # and stay visible (timeout 0) for the whole connect flow. Hide again on
+  # any exit from this function so the PC isn't left discoverable.
+  trap 'bluetoothctl discoverable off >/dev/null 2>&1' RETURN
+  bluetoothctl discoverable-timeout 0 >/dev/null 2>&1
+  bluetoothctl discoverable on >/dev/null 2>&1
+  bluetoothctl pairable on >/dev/null 2>&1
   while true; do
     echo ""
-    echo -e "${YELLOW}Scanning for devices (${SCAN_SECS}s)...${NC}"
-    bluetoothctl --timeout "$SCAN_SECS" scan on >/dev/null 2>&1
+    echo -e "${YELLOW}Scanning for devices ($((SCAN_BREDR_SECS + SCAN_LE_SECS))s)...${NC}"
+    bluetoothctl --timeout "$SCAN_BREDR_SECS" scan bredr >/dev/null 2>&1
+    bluetoothctl --timeout "$SCAN_LE_SECS" scan le >/dev/null 2>&1
 
+    # Dedup by name: phones rotate random BLE addresses, so one device shows
+    # up under several MACs. Keep the first MAC seen per name.
     devices=()
+    declare -A seen_name=()
     while read -r _ mac name; do
-      [[ -z "$mac" ]] && continue
-      devices+=("${mac}"$'\t'"${name:-Unknown}")
+      [[ "$mac" =~ $MAC_RE ]] || continue
+      name="${name:-Unknown}"
+      [[ -n "${seen_name[$name]}" ]] && continue
+      seen_name["$name"]=1
+      devices+=("${mac}"$'\t'"${name}")
     done < <(bluetoothctl devices 2>/dev/null)
 
     if [[ ${#devices[@]} -eq 0 ]]; then
@@ -130,23 +151,70 @@ scan_connect() {
   echo ""
   echo -e "Selected: ${GREEN}$name${NC} ($mac)"
 
-  # Pair only if not already paired, then trust for auto-reconnect, then connect.
-  if ! bluetoothctl info "$mac" 2>/dev/null | grep -q "Paired: yes"; then
-    echo -e "${YELLOW}Pairing...${NC}"
-    if ! bluetoothctl pair "$mac"; then
-      echo -e "${RED}Failed to pair with $name.${NC}"
-      return 0
-    fi
-  fi
-
-  bluetoothctl trust "$mac" >/dev/null 2>&1
-
-  echo -e "${YELLOW}Connecting...${NC}"
-  if bluetoothctl connect "$mac"; then
-    echo -e "${GREEN}Connected to $name successfully!${NC}"
+  if bluetoothctl info "$mac" 2>/dev/null | grep -q "Paired: yes"; then
+    # Already paired: trust for auto-reconnect, then just connect.
+    echo -e "${YELLOW}Connecting...${NC}"
+    bluetoothctl trust "$mac" >/dev/null 2>&1
+    bluetoothctl connect "$mac" >/dev/null 2>&1
   else
-    echo -e "${RED}Failed to connect to $name.${NC}"
+    echo -e "${YELLOW}Pairing with $name...${NC}"
+    pair_interactive "$mac"
   fi
+
+  if bluetoothctl info "$mac" 2>/dev/null | grep -q "Connected: yes"; then
+    echo -e "${GREEN}Connected to $name successfully!${NC}"
+  elif bluetoothctl info "$mac" 2>/dev/null | grep -q "Paired: yes"; then
+    echo -e "${GREEN}Paired with $name.${NC} ${YELLOW}Not connected — normal for phones (no audio profile to hold). Use option 2 to reconnect when needed.${NC}"
+  else
+    echo -e "${RED}Failed to pair with $name.${NC}"
+    echo -e "${YELLOW}Tip: put the device in pairing mode. For a phone, pairing is more reliable when started FROM the phone toward this PC.${NC}"
+  fi
+}
+
+# Pairing uses Secure Simple Pairing, which is interactive: BlueZ prompts
+# "Confirm passkey NNNNNN (yes/no)". Drive bluetoothctl through a coprocess so
+# the script auto-answers that prompt and closes the session itself once
+# pairing resolves — no manual quit/Ctrl-Z. All bluetoothctl chatter is
+# captured and suppressed; the caller reports only paired/connected state.
+pair_interactive() {
+  local mac="$1" line paired=0
+
+  coproc BTPAIR { bluetoothctl 2>&1; }
+  # Keep scanning during the session: stopping discovery makes BlueZ prune the
+  # device ("not available"). Re-discover, then pair.
+  {
+    echo "power on"
+    echo "agent on"
+    echo "default-agent"
+    echo "pairable on"
+    echo "scan on"
+  } >&"${BTPAIR[1]}"
+  sleep 3
+  echo "pair $mac" >&"${BTPAIR[1]}"
+
+  # read -t bounds the wait so a silent device can't hang the session forever.
+  while IFS= read -t 30 -r line <&"${BTPAIR[0]}"; do
+    case "$line" in
+      *"Request confirmation"*|*"Confirm passkey"*|*"Authorize service"*|*"Request authorization"*)
+        echo "yes" >&"${BTPAIR[1]}" ;;
+      *"Pairing successful"*)
+        paired=1
+        echo "trust $mac" >&"${BTPAIR[1]}"
+        echo "connect $mac" >&"${BTPAIR[1]}" ;;
+      *"Failed to pair"*|*"not available"*|*"not ready"*|*"AuthenticationFailed"*|*"AuthenticationCanceled"*|*"AuthenticationTimeout"*)
+        echo "quit" >&"${BTPAIR[1]}" ;;
+    esac
+    if [[ $paired -eq 1 ]]; then
+      case "$line" in
+        *"Connection successful"*|*"Failed to connect"*|*"br-connection"*|*"Disconnected"*)
+          echo "quit" >&"${BTPAIR[1]}" ;;
+      esac
+    fi
+  done
+
+  # Guarantee the coprocess ends (covers the read timeout path).
+  echo "quit" >&"${BTPAIR[1]}" 2>/dev/null
+  wait "$BTPAIR_PID" 2>/dev/null
 }
 
 reconnect_paired() {
@@ -156,7 +224,7 @@ reconnect_paired() {
   echo -e "${YELLOW}Paired devices:${NC}"
   echo ""
   while read -r _ mac name; do
-    [[ -z "$mac" ]] && continue
+    [[ "$mac" =~ $MAC_RE ]] || continue
     paired+=("${mac}"$'\t'"${name:-Unknown}")
   done < <(bluetoothctl devices Paired 2>/dev/null)
 
@@ -250,7 +318,7 @@ remove_paired() {
   echo -e "${YELLOW}Paired devices:${NC}"
   echo ""
   while read -r _ mac name; do
-    [[ -z "$mac" ]] && continue
+    [[ "$mac" =~ $MAC_RE ]] || continue
     paired+=("${mac}"$'\t'"${name:-Unknown}")
   done < <(bluetoothctl devices Paired 2>/dev/null)
 
@@ -309,11 +377,8 @@ while true; do
     5) toggle_power ;;
     *) invalid; continue ;;
   esac
-  rc=$?
-  if [[ $rc -eq 2 ]]; then
-    echo ""
-    show_status
-    continue
-  fi
-  exit 0
+  # Always return to the menu after an action (success, failure, or q=back).
+  # The only exit is q at this top-level prompt.
+  echo ""
+  show_status
 done
