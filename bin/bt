@@ -9,8 +9,8 @@ NC='\033[0m'
 # Classic (BR/EDR) inquiry needs ~10s; LE advertising shows up in a couple.
 # Some controllers starve classic inquiry under the "auto" transport, so we
 # scan each transport explicitly instead of a single `scan on`.
-SCAN_BREDR_SECS=12
-SCAN_LE_SECS=4
+SCAN_BREDR_SECS=8
+SCAN_LE_SECS=2
 
 # Match a Bluetooth MAC (AA:BB:CC:DD:EE:FF) to drop noise lines from output.
 MAC_RE='^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$'
