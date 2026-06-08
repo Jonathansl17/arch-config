@@ -22,5 +22,6 @@ pgadmin4-desktop-bin
 pgadmin4-server-bin
 postman-bin
 python312
+ttf-ms-fonts
 visual-studio-code-bin
 zoom
