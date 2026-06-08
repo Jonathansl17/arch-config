@@ -34,6 +34,7 @@ MAPPINGS=(
     "bin/xp                   $HOME/bin/xp"
     "bin/xpc                  $HOME/bin/xpc"
     "bin/wifi                 $HOME/bin/wifi"
+    "bin/bt                   $HOME/bin/bt"
     "nvim/init.lua            $HOME/.config/nvim/init.lua"
     "nvim/ideavimrc           $HOME/.ideavimrc"
     "nvim/intellij-keymap.xml         $HOME/.config/JetBrains/IntelliJIdea2026.1/keymaps/XWin copy.xml"
@@ -157,7 +158,7 @@ done
 chmod +x "$HOME/.config/bspwm/bspwmrc" 2>/dev/null || true
 chmod +x "$HOME/bin/r" 2>/dev/null || true
 chmod +x "$HOME/bin/monitor" 2>/dev/null || true
-for sc in s b ws vm xp xpc wifi; do
+for sc in s b ws vm xp xpc wifi bt; do
     chmod +x "$HOME/bin/$sc" 2>/dev/null || true
 done
 
