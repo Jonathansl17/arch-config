@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Unified FreeOffice launcher: routes a file to the right FreeOffice app by extension.
+# Mirrors `libreoffice <file>` auto-detection that FreeOffice lacks.
+set -euo pipefail
+
+if [ "$#" -eq 0 ]; then
+    echo "usage: office <file> [file...]" >&2
+    exit 1
+fi
+
+for f in "$@"; do
+    ext="${f##*.}"
+    case "${ext,,}" in
+        doc|docx|odt|rtf|txt|md)
+            app=freeoffice-textmaker ;;
+        xls|xlsx|ods|csv|tsv)
+            app=freeoffice-planmaker ;;
+        ppt|pptx|odp)
+            app=freeoffice-presentations ;;
+        *)
+            echo "office: unknown extension '.$ext' for '$f'" >&2
+            continue ;;
+    esac
+    "$app" "$f" &
+done
