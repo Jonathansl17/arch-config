@@ -4,7 +4,7 @@
 set -euo pipefail
 
 if [ "$#" -eq 0 ]; then
-    echo "usage: office <file> [file...]" >&2
+    echo "usage: f <file> [file...]" >&2
     exit 1
 fi
 
@@ -18,7 +18,7 @@ for f in "$@"; do
         ppt|pptx|odp)
             app=freeoffice-presentations ;;
         *)
-            echo "office: unknown extension '.$ext' for '$f'" >&2
+            echo "f: unknown extension '.$ext' for '$f'" >&2
             continue ;;
     esac
     "$app" "$f" &
