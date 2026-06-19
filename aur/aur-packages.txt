@@ -25,4 +25,3 @@ postman-bin
 python312
 ttf-ms-fonts
 visual-studio-code-bin
-zoom
