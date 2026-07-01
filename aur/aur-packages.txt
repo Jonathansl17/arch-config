@@ -18,6 +18,7 @@ freeoffice
 intellij-idea-ultimate-edition
 jmeter
 k6
+masterpdfeditor-free
 ngrok
 pgadmin4-desktop-bin
 pgadmin4-server-bin
