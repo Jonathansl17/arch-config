@@ -13,8 +13,8 @@ export PNPM_HOME="$HOME/.local/share/pnpm"
 export CHROME_BIN=/usr/bin/brave
 
 # PATH order (left = highest priority): pnpm, ~/bin (termclip), ~/.local/bin,
-# inherited PATH, then Java/Android tooling appended at the end.
-export PATH="$PNPM_HOME:$HOME/bin:$HOME/.local/bin:$PATH:$JAVA_HOME/bin:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/build-tools/34.0.0"
+# ~/go/bin (go install targets), inherited PATH, then Java/Android tooling.
+export PATH="$PNPM_HOME:$HOME/bin:$HOME/.local/bin:$HOME/go/bin:$PATH:$JAVA_HOME/bin:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/build-tools/34.0.0"
 
 [[ -f ~/.bashrc ]] && . ~/.bashrc
 

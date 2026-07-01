@@ -99,6 +99,7 @@ clang
 gdb
 docker
 docker-compose
+go
 jdk21-openjdk
 jdk-openjdk
 maven
