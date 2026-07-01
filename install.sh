@@ -265,6 +265,27 @@ else
     say "Claude Code already present at ~/.local/bin/claude (skipping)"
 fi
 
+# --- 4e-quater. Go-installed CLI tools ---
+# Binaries fetched with `go install`; they land in ~/go/bin (GOPATH/bin), which
+# bash/bash_profile puts on $PATH. Not in the official repos or AUR, so go is
+# the only install path. Idempotent: skip when the binary is already present.
+if command -v go >/dev/null 2>&1; then
+    declare -A GO_TOOLS=(
+        [countdown]="github.com/antonmedv/countdown@latest"
+    )
+    GOBIN_DIR="$(go env GOPATH)/bin"
+    for tool in "${!GO_TOOLS[@]}"; do
+        if [[ -x "$GOBIN_DIR/$tool" ]]; then
+            say "go tool already present: $tool (skipping)"
+        else
+            say "go install ${GO_TOOLS[$tool]}"
+            go install "${GO_TOOLS[$tool]}"
+        fi
+    done
+else
+    warn "go not installed; skipping go install tools"
+fi
+
 # --- 4f. sysctl tweaks ---
 say "Installing sysctl configs"
 sudo cp "$REPO_DIR/sysctl/99-swappiness.conf" /etc/sysctl.d/99-swappiness.conf
