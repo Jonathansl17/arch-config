@@ -8,6 +8,7 @@ and C sources (compiled at install time).
 | Script | Purpose |
 |--------|---------|
 | `b`               | Battery status (capacity, charging state, time-to-empty) |
+| `m`               | Master PDF Editor launcher (`masterpdfeditor4`, detached) |
 | `s`               | git stage + auto-generated commit message + push (aborts on secret patterns) |
 | `monitor`         | External display layout: `right-of`, `left-of`, `off`, `status` |
 | `vm`              | Volume + mic status (PipeWire via `wpctl`) |
