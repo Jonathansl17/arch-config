@@ -25,17 +25,6 @@ MAPPINGS=(
     "bash/bash_profile        $HOME/.bash_profile"
     "xinit/xinitrc            $HOME/.xinitrc"
     "templates/template.xopp  $HOME/templates/template.xopp"
-    "bin/alacritty-selectall  $HOME/bin/alacritty-selectall"
-    "bin/b                    $HOME/bin/b"
-    "bin/e                    $HOME/bin/e"
-    "bin/monitor              $HOME/bin/monitor"
-    "bin/s                    $HOME/bin/s"
-    "bin/ws                   $HOME/bin/ws"
-    "bin/vm                   $HOME/bin/vm"
-    "bin/xp                   $HOME/bin/xp"
-    "bin/xpc                  $HOME/bin/xpc"
-    "bin/wifi                 $HOME/bin/wifi"
-    "bin/bt                   $HOME/bin/bt"
     "nvim/init.lua            $HOME/.config/nvim/init.lua"
     "nvim/ideavimrc           $HOME/.ideavimrc"
     "nvim/intellij-keymap.xml         $HOME/.config/JetBrains/IntelliJIdea2026.1/keymaps/XWin copy.xml"
@@ -43,6 +32,20 @@ MAPPINGS=(
     "vscode/keybindings.json  $HOME/.config/Code/User/keybindings.json"
     "vscode/settings.json     $HOME/.config/Code/User/settings.json"
 )
+
+# bin/ executables are discovered dynamically: any new script dropped in bin/
+# deploys automatically, no manual MAPPINGS entry needed. Skip C sources (.c,
+# compiled separately in section 4b) and docs (.md). Track the basenames so the
+# chmod pass below can flag exactly these executable.
+BIN_SCRIPTS=()
+for f in "$REPO_DIR"/bin/*; do
+    base="$(basename "$f")"
+    case "$base" in
+        *.c | *.md) continue ;;
+    esac
+    MAPPINGS+=("bin/$base $HOME/bin/$base")
+    BIN_SCRIPTS+=("$base")
+done
 
 read_pkglist() {
     # Reads a pacman-style list: strips comments (#...) and blank lines.
@@ -155,11 +158,9 @@ for entry in "${MAPPINGS[@]}"; do
     install_file "$src" "$dst"
 done
 
-# bspwm scripts and local bin scripts must be executable
+# bspwm rc and every deployed bin/ script must be executable
 chmod +x "$HOME/.config/bspwm/bspwmrc" 2>/dev/null || true
-chmod +x "$HOME/bin/r" 2>/dev/null || true
-chmod +x "$HOME/bin/monitor" 2>/dev/null || true
-for sc in s b e ws vm xp xpc wifi bt; do
+for sc in "${BIN_SCRIPTS[@]}"; do
     chmod +x "$HOME/bin/$sc" 2>/dev/null || true
 done
 
