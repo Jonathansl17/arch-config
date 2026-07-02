@@ -4,7 +4,7 @@
 set -euo pipefail
 
 if [ "$#" -eq 0 ]; then
-    echo "usage: m <file.pdf> [file...]" >&2
+    echo "usage: e <file.pdf> [file...]" >&2
     exit 1
 fi
 

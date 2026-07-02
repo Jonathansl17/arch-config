@@ -27,6 +27,7 @@ MAPPINGS=(
     "templates/template.xopp  $HOME/templates/template.xopp"
     "bin/alacritty-selectall  $HOME/bin/alacritty-selectall"
     "bin/b                    $HOME/bin/b"
+    "bin/e                    $HOME/bin/e"
     "bin/monitor              $HOME/bin/monitor"
     "bin/s                    $HOME/bin/s"
     "bin/ws                   $HOME/bin/ws"
@@ -158,7 +159,7 @@ done
 chmod +x "$HOME/.config/bspwm/bspwmrc" 2>/dev/null || true
 chmod +x "$HOME/bin/r" 2>/dev/null || true
 chmod +x "$HOME/bin/monitor" 2>/dev/null || true
-for sc in s b ws vm xp xpc wifi bt; do
+for sc in s b e ws vm xp xpc wifi bt; do
     chmod +x "$HOME/bin/$sc" 2>/dev/null || true
 done
 
