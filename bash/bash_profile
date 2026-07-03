@@ -24,5 +24,8 @@ export PATH="$PNPM_HOME:$HOME/bin:$HOME/.local/bin:$HOME/go/bin:$PATH:$JAVA_HOME
 export XAUTHORITY="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/Xauthority"
 
 if [[ -z $DISPLAY && $XDG_VTNR -eq 1 ]]; then
+  # Pre-create the auth file so startx's xauth doesn't warn "does not exist"
+  # on first login (tmpfs is wiped on logout, so this runs each session).
+  [[ -f $XAUTHORITY ]] || install -m600 /dev/null "$XAUTHORITY"
   exec startx
 fi
