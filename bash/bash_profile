@@ -18,6 +18,11 @@ export PATH="$PNPM_HOME:$HOME/bin:$HOME/.local/bin:$HOME/go/bin:$PATH:$JAVA_HOME
 
 [[ -f ~/.bashrc ]] && . ~/.bashrc
 
+# Keep the X auth cookie in the tmpfs runtime dir instead of ~/.Xauthority.
+# It is user-owned, wiped on logout, and regenerated each login — so a stray
+# root-owned file or stale lock can never wedge X with a "locking timeout".
+export XAUTHORITY="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/Xauthority"
+
 if [[ -z $DISPLAY && $XDG_VTNR -eq 1 ]]; then
   exec startx
 fi
