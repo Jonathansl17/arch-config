@@ -101,6 +101,31 @@ else
 fi
 ok "kernel running: $KERNEL_RUNNING"
 
+# 0.3.5 — kernel-headers file integrity.
+#   A truncated/corrupt vmlinux (interrupted -Syu, disk full, power loss)
+#   compiles the NVIDIA .ko files fine but breaks the BTF generation step
+#   ("libbpf: failed to get e_shstrndx ... vmlinux", "Bad return status for
+#   module build"). Detect real corruption (size/checksum mismatch) and repair
+#   by reinstalling the package, which also retriggers the DKMS build hook.
+if pacman -Qi linux-headers >/dev/null 2>&1; then
+    HDR_BAD=$(pacman -Qkk linux-headers 2>/dev/null \
+              | grep -cE 'Size mismatch|SHA256 checksum mismatch' || true)
+    if (( HDR_BAD > 0 )); then
+        warn "linux-headers has $HDR_BAD corrupt file(s) (e.g. truncated vmlinux) — DKMS build will fail"
+        if (( CHECK_ONLY == 1 )); then
+            die "corrupt linux-headers detected; run without --check to repair"
+        fi
+        say "Reinstalling linux-headers to repair"
+        sudo pacman -S --noconfirm --overwrite '*' linux-headers
+        if pacman -Qkk linux-headers 2>/dev/null | grep -qE 'Size mismatch|SHA256 checksum mismatch'; then
+            die "linux-headers still corrupt after reinstall — check disk health (smartctl) and free space"
+        fi
+        ok "linux-headers repaired"
+    else
+        ok "linux-headers file integrity OK"
+    fi
+fi
+
 # 0.4 — root filesystem writable (not read-only emergency mount)
 if ! touch /tmp/.nvidia-install-rw-test 2>/dev/null; then
     die "/tmp is not writable — filesystem may be mounted read-only"
@@ -416,9 +441,12 @@ ok "DKMS nvidia module present for $KERNEL_RUNNING"
 # Also verify the .ko files landed where the kernel expects them
 missing_ko=()
 for m in "${EXPECTED_DKMS_MODULES[@]}"; do
-    ko_name="${m//-/_}.ko"
-    if ! find "/lib/modules/${KERNEL_RUNNING}" -name "${ko_name}*" -print -quit | grep -q .; then
-        missing_ko+=("$ko_name")
+    # DKMS names the files with hyphens (nvidia-modeset.ko.zst) but the kernel
+    # treats - and _ as equivalent, so match either separator to avoid false
+    # "missing" reports. Trailing * covers the .zst compression suffix.
+    ko_glob="${m//-/[-_]}.ko"
+    if ! find "/lib/modules/${KERNEL_RUNNING}" -name "${ko_glob}*" -print -quit | grep -q .; then
+        missing_ko+=("${m}.ko")
     fi
 done
 if (( ${#missing_ko[@]} > 0 )); then
