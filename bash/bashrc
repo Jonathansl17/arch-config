@@ -31,7 +31,7 @@ alias feh='feh -F'
 alias cf="claude --dangerously-skip-permissions"
 
 # === GUI launcher functions ===
-xournalpp() {
+x() {
     for arg in "$@"; do
         case "$arg" in
             -*) ;;
