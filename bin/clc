@@ -112,10 +112,17 @@ for d in thumbnails vscode-cpptools Cypress puccinialin; do
 done
 
 # --- systemd journal ----------------------------------------------------------
+# journalctl prints one line per deleted file, which drowns the rest of the run.
+# Keep only the per-path summary lines that actually freed something.
+journal_vacuum() {
+    sudo journalctl --vacuum-size=200M 2>&1 \
+        | grep '^Vacuuming done' | grep -v 'freed 0B' || true
+}
+
 if command -v journalctl >/dev/null; then
     jsize=$(journalctl --disk-usage 2>/dev/null | grep -oE '[0-9.]+[KMG]' | head -1)
     if confirm "vacuum systemd journal (${jsize:-?}) down to 200M?"; then
-        run "journal vacuum" sudo journalctl --vacuum-size=200M
+        run "journal vacuum" journal_vacuum
     fi
 fi
 
@@ -148,6 +155,13 @@ HOME_FREED=$(( $(avail "$HOME") - HOME_BEFORE ))
 echo
 say "freed"
 printf '    %-12s %8s   (%s free)\n' "/" "$(human "$ROOT_FREED")" "$(df -Ph / | awk 'NR==2 {print $4}')"
+
+TOTAL_FREED=$ROOT_FREED
+# Only count $HOME separately when it is its own filesystem, otherwise its
+# delta is the same bytes already counted under /.
 if [ "$(stat -fc %i /)" != "$(stat -fc %i "$HOME")" ]; then
     printf '    %-12s %8s   (%s free)\n' "$HOME" "$(human "$HOME_FREED")" "$(df -Ph "$HOME" | awk 'NR==2 {print $4}')"
+    TOTAL_FREED=$(( TOTAL_FREED + HOME_FREED ))
 fi
+
+printf '    %s%-12s %8s%s\n' "$BOLD" "total" "$(human "$TOTAL_FREED")" "$RESET"
