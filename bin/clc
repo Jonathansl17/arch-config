@@ -1,0 +1,153 @@
+#!/usr/bin/env bash
+# clc: clean every cache on this machine and report what it freed.
+# Safe steps run unattended; anything that costs a re-download (Docker images,
+# journal history) asks first. Docker volumes are never touched without
+# --volumes because that is where database data lives.
+# Usage: clc [-y] [-n] [--volumes] [-h]
+set -uo pipefail
+
+ASSUME_YES=0
+DRY_RUN=0
+PRUNE_VOLUMES=0
+CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
+
+usage() {
+    cat <<EOF
+clc                clean caches, ask before destructive steps
+clc -y             assume yes (still skips Docker volumes)
+clc -n             dry run, only report sizes
+clc --volumes      also prune dangling Docker volumes (DELETES DB DATA)
+EOF
+    exit "${1:-0}"
+}
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -y|--yes)     ASSUME_YES=1 ;;
+        -n|--dry-run) DRY_RUN=1 ;;
+        --volumes)    PRUNE_VOLUMES=1 ;;
+        -h|--help)    usage ;;
+        *) echo "clc: unknown option '$1'" >&2; usage 1 ;;
+    esac
+    shift
+done
+
+BOLD=$'\e[1m'; DIM=$'\e[2m'; RESET=$'\e[0m'
+
+say()  { printf '%s==>%s %s\n' "$BOLD" "$RESET" "$*"; }
+skip() { printf '%s    skip: %s%s\n' "$DIM" "$*" "$RESET"; }
+
+# Free space in KiB on the filesystem holding $1.
+avail() { df -Pk "$1" | awk 'NR==2 {print $4}'; }
+
+# Sizes are reported from df deltas, which can drift slightly negative while
+# other processes write; clamp so the summary never reads "-4K freed".
+human() {
+    local kb=$1
+    [ "$kb" -lt 0 ] && kb=0
+    numfmt --to=iec --suffix=B "$(( kb * 1024 ))" 2>/dev/null || echo "${kb}K"
+}
+
+# Yes/no prompt. Honours -y, and auto-declines when stdin is not a terminal so
+# `clc` stays safe inside cron or a pipe.
+confirm() {
+    [ "$ASSUME_YES" -eq 1 ] && return 0
+    [ -t 0 ] || { skip "$1 (not interactive)"; return 1; }
+    local reply
+    read -r -p "    $1 [y/N] " reply
+    [[ "$reply" =~ ^[Yy]$ ]]
+}
+
+# run <description> <command...>
+run() {
+    local desc="$1"; shift
+    if [ "$DRY_RUN" -eq 1 ]; then
+        skip "$desc (dry run)"
+        return 0
+    fi
+    say "$desc"
+    "$@" 2>&1 | sed 's/^/    /'
+    return 0    # a failing cleaner must not abort the remaining steps
+}
+
+ROOT_BEFORE=$(avail /)
+HOME_BEFORE=$(avail "$HOME")
+
+# --- pacman package cache -----------------------------------------------------
+if command -v paccache >/dev/null; then
+    run "pacman cache (keeping newest 1 of each)" sudo paccache -rk1
+    run "pacman cache (uninstalled packages)"     sudo paccache -ruk0
+else
+    skip "paccache not installed (pacman-contrib)"
+fi
+
+# --- AUR build cache ----------------------------------------------------------
+if command -v yay >/dev/null; then
+    run "yay AUR build cache" yay -Sc --aur --noconfirm
+else
+    skip "yay not installed"
+fi
+
+# --- language / tool caches ---------------------------------------------------
+command -v pnpm  >/dev/null && run "pnpm store"   pnpm store prune            || skip "pnpm"
+command -v npm   >/dev/null && run "npm cache"    npm cache clean --force     || skip "npm"
+command -v pip   >/dev/null && run "pip cache"    pip cache purge             || skip "pip"
+command -v go    >/dev/null && run "go build cache" go clean -cache -modcache || skip "go"
+
+if command -v cargo-cache >/dev/null; then
+    run "cargo registry" cargo cache --autoclean
+else
+    skip "cargo (install cargo-cache to enable)"
+fi
+
+# --- loose cache directories that regenerate on demand ------------------------
+for d in thumbnails vscode-cpptools Cypress puccinialin; do
+    target="$CACHE_HOME/$d"
+    [ -d "$target" ] || continue
+    size=$(du -sk "$target" 2>/dev/null | cut -f1)
+    [ "${size:-0}" -lt 102400 ] && continue      # ignore anything under 100 MiB
+    if confirm "delete $target ($(human "$size")), regenerates on demand?"; then
+        run "removing $d" rm -rf "${target:?}"
+    fi
+done
+
+# --- systemd journal ----------------------------------------------------------
+if command -v journalctl >/dev/null; then
+    jsize=$(journalctl --disk-usage 2>/dev/null | grep -oE '[0-9.]+[KMG]' | head -1)
+    if confirm "vacuum systemd journal (${jsize:-?}) down to 200M?"; then
+        run "journal vacuum" sudo journalctl --vacuum-size=200M
+    fi
+fi
+
+# --- Docker -------------------------------------------------------------------
+if command -v docker >/dev/null; then
+    if ! docker info >/dev/null 2>&1; then
+        skip "docker installed but daemon not running"
+    else
+        say "docker usage"
+        docker system df | sed 's/^/    /'
+        if confirm "prune unused images, stopped containers and build cache?"; then
+            run "docker prune" docker system prune -af
+        fi
+        if [ "$PRUNE_VOLUMES" -eq 1 ]; then
+            printf '%s    WARNING: dangling volumes hold database data and cannot be recovered.%s\n' "$BOLD" "$RESET"
+            docker volume ls -qf dangling=true | sed 's/^/    /'
+            if confirm "permanently delete the volumes listed above?"; then
+                run "docker volume prune" docker volume prune -f
+            fi
+        else
+            skip "docker volumes (pass --volumes to include them)"
+        fi
+    fi
+fi
+
+# --- report -------------------------------------------------------------------
+ROOT_FREED=$(( $(avail /) - ROOT_BEFORE ))
+HOME_FREED=$(( $(avail "$HOME") - HOME_BEFORE ))
+
+echo
+say "freed"
+printf '    %-12s %8s   (%s free)\n' "/" "$(human "$ROOT_FREED")" "$(df -Ph / | awk 'NR==2 {print $4}')"
+if [ "$(stat -fc %i /)" != "$(stat -fc %i "$HOME")" ]; then
+    printf '    %-12s %8s   (%s free)\n' "$HOME" "$(human "$HOME_FREED")" "$(df -Ph "$HOME" | awk 'NR==2 {print $4}')"
+fi
