@@ -9,12 +9,13 @@ and C sources (compiled at install time).
 |--------|---------|
 | `b`               | Battery status (capacity, charging state, time-to-empty) |
 | `clc`             | Clean every cache (pacman, AUR, pnpm/npm/pip/go, journal, Docker) and report freed space |
-| `m`               | Master PDF Editor launcher (`masterpdfeditor4`, detached) |
+| `e`               | Master PDF Editor launcher (`masterpdfeditor4`, detached) |
 | `s`               | git stage + auto-generated commit message + push (aborts on secret patterns) |
 | `monitor`         | External display layout: `right-of`, `left-of`, `off`, `status` |
 | `vm`              | Volume + mic status (PipeWire via `wpctl`) |
 | `wifi`            | Interactive WiFi/LAN manager (nmcli wrapper) |
 | `ws`              | Net status snapshot (LAN + WiFi) |
+| `x`               | Xournal++ launcher (detached; seeds new `.xopp` from `~/templates/template.xopp`) |
 | `xp`, `xpc`       | xournalpp → PDF helpers |
 | `alacritty-selectall` | vi-mode select-all + clipboard yank |
 

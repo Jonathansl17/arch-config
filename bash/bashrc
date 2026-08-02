@@ -30,17 +30,13 @@ alias u='sudo pacman -Syu && yay -Syu'
 alias feh='feh -F'
 alias cf="claude --dangerously-skip-permissions"
 
-# === GUI launcher functions ===
-x() {
-    for arg in "$@"; do
-        case "$arg" in
-            -*) ;;
-            *.xopp) [ -e "$arg" ] || cp ~/templates/template.xopp "$arg" ;;
-        esac
-    done
-    setsid -f /usr/bin/xournalpp "$@" >/dev/null 2>&1
-}
+# Typing the full name gets the ~/bin/x behaviour (detached + template).
+# No recursion: the script calls /usr/bin/xournalpp by absolute path.
+alias xournalpp='x'
 
+# === GUI launcher functions ===
+# `x` (Xournal++) lives in ~/bin/x — it needs no shell state.
+# `evince` stays a function: it shadows the binary of the same name.
 evince() {
     setsid -f /usr/bin/evince "$@" >/dev/null 2>&1
 }
