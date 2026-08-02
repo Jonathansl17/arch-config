@@ -1,0 +1,10 @@
+#!/bin/bash
+# Xournal++ launcher (detached). Any .xopp argument that does not exist yet
+# is seeded from ~/templates/template.xopp before opening.
+for arg in "$@"; do
+    case "$arg" in
+        -*) ;;
+        *.xopp) [ -e "$arg" ] || cp ~/templates/template.xopp "$arg" ;;
+    esac
+done
+setsid -f /usr/bin/xournalpp "$@" >/dev/null 2>&1

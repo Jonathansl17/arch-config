@@ -17,8 +17,9 @@ Shell config.
 `bashrc` (sourced per interactive shell):
 - Aliases, prompt, completions
 - Lazy-load functions for `nvm`, `node`, `pnpm`
-- `xournalpp` shell function (copies `~/templates/template.xopp` when
-  invoked with a non-existent file)
+- `evince` shell function — launches Evince detached (must stay a function:
+  it shadows the binary of the same name). The Xournal++ launcher `x` lives
+  in [`bin/x`](../bin/README.md) instead, since it needs no shell state.
 - Sources `~/.bashrc.local` if present
 
 ## Local-only overrides: `~/.bashrc.local`
