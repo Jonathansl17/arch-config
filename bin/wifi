@@ -47,6 +47,51 @@ show_status() {
 
 invalid() { echo -e "${RED}Invalid selection. Try again (q to go back).${NC}"; }
 
+# Exact-name matchers. nmcli -t output is field-separated by ':', so a plain
+# grep regex breaks on SSIDs containing regex metacharacters. awk compares the
+# whole field instead.
+is_active_connection() {
+  nmcli -t -f NAME,TYPE connection show --active \
+    | awk -F: -v n="$1" '$1 == n && $2 ~ /wireless/ {found = 1} END {exit !found}'
+}
+
+is_saved_connection() {
+  nmcli -t -f NAME,TYPE connection show \
+    | awk -F: -v n="$1" '$1 == n && $2 ~ /wireless/ {found = 1} END {exit !found}'
+}
+
+# verify_activation <connection-name> <nmcli-exit-code>
+# A non-zero nmcli exit is NOT proof of failure: NetworkManager keeps retrying
+# in the background (autoconnect), and 802.1X associations routinely time out on
+# the first attempt while succeeding seconds later. Poll the real device state
+# before declaring failure.
+verify_activation() {
+  local name="$1" rc="$2" waited=0 timeout=45 state
+
+  if [[ "$rc" -eq 0 ]]; then
+    echo -e "${GREEN}Connected to $name successfully!${NC}"
+    return 0
+  fi
+
+  echo -e "${YELLOW}nmcli reported a failure. Waiting up to ${timeout}s in case NetworkManager retries...${NC}"
+  while (( waited < timeout )); do
+    if is_active_connection "$name"; then
+      echo ""
+      echo -e "${GREEN}Connected to $name successfully (NetworkManager retried in background).${NC}"
+      return 0
+    fi
+    printf "."
+    sleep 2
+    waited=$((waited + 2))
+  done
+
+  echo ""
+  state=$(nmcli -t -f GENERAL.STATE device show "$WIFI_IFACE" 2>/dev/null | cut -d: -f2-)
+  echo -e "${RED}Failed to connect to $name.${NC}"
+  echo -e "${RED}Device $WIFI_IFACE state: ${state:-unknown}${NC}"
+  return 1
+}
+
 connect_new() {
   local networks=() ssid signal security net_choice sec_choice
   while true; do
@@ -88,13 +133,10 @@ connect_new() {
   echo ""
   echo -e "Selected: ${GREEN}$ssid${NC} (${security:-Open})"
 
-  if nmcli -t -f NAME,TYPE connection show | grep -q "^${ssid}:.*wireless$"; then
+  if is_saved_connection "$ssid"; then
     echo -e "${YELLOW}Saved connection found. Connecting...${NC}"
-    if nmcli connection up "$ssid"; then
-      echo -e "${GREEN}Connected to $ssid successfully!${NC}"
-    else
-      echo -e "${RED}Failed to connect to $ssid.${NC}"
-    fi
+    nmcli connection up "$ssid"
+    verify_activation "$ssid" $?
     return 0
   fi
 
@@ -112,15 +154,18 @@ connect_new() {
     esac
   done
 
+  local rc
   case "$sec_choice" in
     1)
-      nmcli device wifi connect "$ssid"
+      nmcli device wifi connect "$ssid" ifname "$WIFI_IFACE"
+      rc=$?
       ;;
     2)
       local wifi_pass
       read_input "Password (q=back): " 1 || return 2
       wifi_pass="$REPLY"
       nmcli device wifi connect "$ssid" password "$wifi_pass" ifname "$WIFI_IFACE"
+      rc=$?
       ;;
     3)
       local identity wifi_pass eap phase2 eap_choice
@@ -143,21 +188,38 @@ connect_new() {
           *) invalid ;;
         esac
       done
-      nmcli connection add type wifi con-name "$ssid" ifname "$WIFI_IFACE" ssid "$ssid" \
-        wifi-sec.key-mgmt wpa-eap \
-        802-1x.eap "$eap" \
-        802-1x.phase2-auth "$phase2" \
-        802-1x.identity "$identity" \
-        802-1x.password "$wifi_pass"
+      # Update in place when the profile already exists, so re-running the
+      # script after a failed attempt does not error out on a duplicate name.
+      # password-flags 0 stores the secret in the system store; without it
+      # NetworkManager can fail activation with reason 'no-secrets'.
+      if is_saved_connection "$ssid"; then
+        nmcli connection modify "$ssid" \
+          wifi-sec.key-mgmt wpa-eap \
+          802-1x.eap "$eap" \
+          802-1x.phase2-auth "$phase2" \
+          802-1x.identity "$identity" \
+          802-1x.password "$wifi_pass" \
+          802-1x.password-flags 0
+      else
+        nmcli connection add type wifi con-name "$ssid" ifname "$WIFI_IFACE" ssid "$ssid" \
+          wifi-sec.key-mgmt wpa-eap \
+          802-1x.eap "$eap" \
+          802-1x.phase2-auth "$phase2" \
+          802-1x.identity "$identity" \
+          802-1x.password "$wifi_pass" \
+          802-1x.password-flags 0
+      fi
+      rc=$?
+      if [[ $rc -ne 0 ]]; then
+        echo -e "${RED}Failed to create or update the profile for $ssid.${NC}"
+        return 1
+      fi
       nmcli connection up "$ssid"
+      rc=$?
       ;;
   esac
 
-  if [[ $? -eq 0 ]]; then
-    echo -e "${GREEN}Connected to $ssid successfully!${NC}"
-  else
-    echo -e "${RED}Failed to connect to $ssid.${NC}"
-  fi
+  verify_activation "$ssid" "$rc"
 }
 
 reconnect_saved() {
@@ -188,11 +250,8 @@ reconnect_saved() {
 
   chosen="${saved[$((re_choice-1))]}"
   echo -e "${YELLOW}Connecting to $chosen...${NC}"
-  if nmcli connection up "$chosen"; then
-    echo -e "${GREEN}Connected to $chosen successfully!${NC}"
-  else
-    echo -e "${RED}Failed to connect to $chosen.${NC}"
-  fi
+  nmcli connection up "$chosen"
+  verify_activation "$chosen" $?
 }
 
 disconnect_current() {
