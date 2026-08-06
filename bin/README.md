@@ -10,6 +10,7 @@ and C sources (compiled at install time).
 | `b`               | Battery status (capacity, charging state, time-to-empty) |
 | `clc`             | Clean every cache (pacman, AUR, pnpm/npm/pip/go, journal, Docker) and report freed space |
 | `e`               | Master PDF Editor launcher (`masterpdfeditor4`, detached) |
+| `freeoffice-textmaker`, `freeoffice-planmaker`, `freeoffice-presentations` | FreeOffice launchers (detached); shadow the `/usr/bin/` binaries of the same name |
 | `s`               | git stage + auto-generated commit message + push (aborts on secret patterns) |
 | `monitor`         | External display layout: `right-of`, `left-of`, `off`, `status` |
 | `vm`              | Volume + mic status (PipeWire via `wpctl`) |
