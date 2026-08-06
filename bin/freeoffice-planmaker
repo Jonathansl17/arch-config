@@ -1,0 +1,4 @@
+#!/bin/bash
+# FreeOffice PlanMaker launcher (detached). Shadows /usr/bin/freeoffice-planmaker;
+# the absolute path below avoids recursion.
+setsid -f /usr/bin/freeoffice-planmaker "$@" >/dev/null 2>&1

@@ -1,0 +1,4 @@
+#!/bin/bash
+# FreeOffice TextMaker launcher (detached). Shadows /usr/bin/freeoffice-textmaker;
+# the absolute path below avoids recursion.
+setsid -f /usr/bin/freeoffice-textmaker "$@" >/dev/null 2>&1

@@ -1,0 +1,4 @@
+#!/bin/bash
+# FreeOffice Presentations launcher (detached). Shadows
+# /usr/bin/freeoffice-presentations; the absolute path below avoids recursion.
+setsid -f /usr/bin/freeoffice-presentations "$@" >/dev/null 2>&1
