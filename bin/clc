@@ -3,6 +3,10 @@
 # Safe steps run unattended; anything that costs a re-download (Docker images,
 # journal history) asks first. Docker volumes are never touched without
 # --volumes because that is where database data lives.
+#
+# Sizes are measured per cache (du before/after, or the tool's own reclaimed
+# figure for docker/journald) instead of from df deltas, so concurrent writes
+# by other processes do not distort the report.
 # Usage: clc [-y] [-n] [--volumes] [-h]
 set -uo pipefail
 
@@ -15,7 +19,7 @@ usage() {
     cat <<EOF
 clc                clean caches, ask before destructive steps
 clc -y             assume yes (still skips Docker volumes)
-clc -n             dry run, only report sizes
+clc -n             dry run, only report current cache sizes
 clc --volumes      also prune dangling Docker volumes (DELETES DB DATA)
 EOF
     exit "${1:-0}"
@@ -37,15 +41,46 @@ BOLD=$'\e[1m'; DIM=$'\e[2m'; RESET=$'\e[0m'
 say()  { printf '%s==>%s %s\n' "$BOLD" "$RESET" "$*"; }
 skip() { printf '%s    skip: %s%s\n' "$DIM" "$*" "$RESET"; }
 
-# Free space in KiB on the filesystem holding $1.
-avail() { df -Pk "$1" | awk 'NR==2 {print $4}'; }
-
-# Sizes are reported from df deltas, which can drift slightly negative while
-# other processes write; clamp so the summary never reads "-4K freed".
 human() {
     local kb=$1
     [ "$kb" -lt 0 ] && kb=0
     numfmt --to=iec --suffix=B "$(( kb * 1024 ))" 2>/dev/null || echo "${kb}K"
+}
+
+# to_kb <size> [si]  -- "1.4G", "200M", "1.234GB" -> KiB. Pass "si" for tools
+# that use power-of-ten units (docker); default is power-of-two (systemd, du).
+to_kb() {
+    local v="${1:-}" base="${2:-iec}" bytes
+    v="${v//B/}"
+    [ -z "$v" ] && { echo 0; return; }
+    bytes=$(numfmt --from="$base" -- "$v" 2>/dev/null) || { echo 0; return; }
+    echo $(( ${bytes%.*} / 1024 ))
+}
+
+# Disk usage in KiB of every path that exists. Missing or unreadable trees
+# contribute 0 instead of aborting the measurement.
+dsize() {
+    local total=0 p sz
+    for p in "$@"; do
+        [ -e "$p" ] || continue
+        sz=$(du -sk "$p" 2>/dev/null | awk 'NR==1 {print $1}')
+        total=$(( total + ${sz:-0} ))
+    done
+    echo "$total"
+}
+
+REPORT_LABELS=()
+REPORT_KB=()
+TOTAL_FREED=0
+
+# record <label> <kb-freed>
+record() {
+    local kb=$2
+    [ "$kb" -lt 0 ] && kb=0          # a cache that grew mid-run counts as zero
+    [ "$kb" -eq 0 ] && return
+    REPORT_LABELS+=("$1")
+    REPORT_KB+=("$kb")
+    TOTAL_FREED=$(( TOTAL_FREED + kb ))
 }
 
 # Yes/no prompt. Honours -y, and auto-declines when stdin is not a terminal so
@@ -70,32 +105,80 @@ run() {
     return 0    # a failing cleaner must not abort the remaining steps
 }
 
-ROOT_BEFORE=$(avail /)
-HOME_BEFORE=$(avail "$HOME")
+# measured <label> <command...>  -- sizes MEASURE_PATHS before and after.
+# Set MEASURE_PATHS before each call.
+MEASURE_PATHS=()
+measured() {
+    local label="$1"; shift
+    local before after
+    before=$(dsize "${MEASURE_PATHS[@]}")
+    if [ "$DRY_RUN" -eq 1 ]; then
+        skip "$label (dry run, currently $(human "$before"))"
+        return 0
+    fi
+    run "$label" "$@"
+    after=$(dsize "${MEASURE_PATHS[@]}")
+    if [ "$before" -eq 0 ] && [ "$after" -eq 0 ]; then
+        # Nothing there, or the path was not readable: say so instead of
+        # silently reporting a clean 0B.
+        local p seen=0
+        for p in "${MEASURE_PATHS[@]}"; do [ -e "$p" ] && seen=1; done
+        [ "$seen" -eq 0 ] && skip "$label: cache path not found, not counted"
+        return 0
+    fi
+    record "$label" $(( before - after ))
+}
 
 # --- pacman package cache -----------------------------------------------------
 if command -v paccache >/dev/null; then
-    run "pacman cache (keeping newest 1 of each)" sudo paccache -rk1
-    run "pacman cache (uninstalled packages)"     sudo paccache -ruk0
+    MEASURE_PATHS=(/var/cache/pacman/pkg)
+    measured "pacman cache (keeping newest 1 of each)" sudo paccache -rk1
+    MEASURE_PATHS=(/var/cache/pacman/pkg)
+    measured "pacman cache (uninstalled packages)"     sudo paccache -ruk0
 else
     skip "paccache not installed (pacman-contrib)"
 fi
 
 # --- AUR build cache ----------------------------------------------------------
 if command -v yay >/dev/null; then
-    run "yay AUR build cache" yay -Sc --aur --noconfirm
+    MEASURE_PATHS=("$CACHE_HOME/yay")
+    measured "yay AUR build cache" yay -Sc --aur --noconfirm
 else
     skip "yay not installed"
 fi
 
 # --- language / tool caches ---------------------------------------------------
-command -v pnpm  >/dev/null && run "pnpm store"   pnpm store prune            || skip "pnpm"
-command -v npm   >/dev/null && run "npm cache"    npm cache clean --force     || skip "npm"
-command -v pip   >/dev/null && run "pip cache"    pip cache purge             || skip "pip"
-command -v go    >/dev/null && run "go build cache" go clean -cache -modcache || skip "go"
+if command -v pnpm >/dev/null; then
+    MEASURE_PATHS=("$(pnpm store path 2>/dev/null)")
+    measured "pnpm store" pnpm store prune
+else
+    skip "pnpm"
+fi
+
+if command -v npm >/dev/null; then
+    MEASURE_PATHS=("$(npm config get cache 2>/dev/null)")
+    measured "npm cache" npm cache clean --force
+else
+    skip "npm"
+fi
+
+if command -v pip >/dev/null; then
+    MEASURE_PATHS=("$(pip cache dir 2>/dev/null)")
+    measured "pip cache" pip cache purge
+else
+    skip "pip"
+fi
+
+if command -v go >/dev/null; then
+    MEASURE_PATHS=("$(go env GOCACHE 2>/dev/null)" "$(go env GOMODCACHE 2>/dev/null)")
+    measured "go build cache" go clean -cache -modcache
+else
+    skip "go"
+fi
 
 if command -v cargo-cache >/dev/null; then
-    run "cargo registry" cargo cache --autoclean
+    MEASURE_PATHS=("${CARGO_HOME:-$HOME/.cargo}/registry" "${CARGO_HOME:-$HOME/.cargo}/git")
+    measured "cargo registry" cargo cache --autoclean
 else
     skip "cargo (install cargo-cache to enable)"
 fi
@@ -104,29 +187,51 @@ fi
 for d in thumbnails vscode-cpptools Cypress puccinialin; do
     target="$CACHE_HOME/$d"
     [ -d "$target" ] || continue
-    size=$(du -sk "$target" 2>/dev/null | cut -f1)
-    [ "${size:-0}" -lt 102400 ] && continue      # ignore anything under 100 MiB
+    size=$(dsize "$target")
+    [ "$size" -lt 102400 ] && continue           # ignore anything under 100 MiB
     if confirm "delete $target ($(human "$size")), regenerates on demand?"; then
-        run "removing $d" rm -rf "${target:?}"
+        MEASURE_PATHS=("$target")
+        measured "$d cache" rm -rf "${target:?}"
     fi
 done
 
 # --- systemd journal ----------------------------------------------------------
 # journalctl prints one line per deleted file, which drowns the rest of the run.
-# Keep only the per-path summary lines that actually freed something.
+# Keep the per-path summary lines, and total up the amounts they report.
 journal_vacuum() {
-    sudo journalctl --vacuum-size=200M 2>&1 \
-        | grep '^Vacuuming done' | grep -v 'freed 0B' || true
+    local line out freed=0
+    out=$(sudo journalctl --vacuum-size=200M 2>&1 | grep '^Vacuuming done' | grep -v 'freed 0B')
+    [ -n "$out" ] && printf '%s\n' "$out" | sed 's/^/    /' >&2
+    while IFS= read -r line; do
+        [ -n "$line" ] || continue
+        freed=$(( freed + $(to_kb "$(sed -n 's/.*freed \([0-9.]*[KMGT]\?\)B\?.*/\1/p' <<<"$line")") ))
+    done <<<"$out"
+    echo "$freed"                       # stdout is the number, log went to stderr
 }
 
 if command -v journalctl >/dev/null; then
     jsize=$(journalctl --disk-usage 2>/dev/null | grep -oE '[0-9.]+[KMG]' | head -1)
     if confirm "vacuum systemd journal (${jsize:-?}) down to 200M?"; then
-        run "journal vacuum" journal_vacuum
+        if [ "$DRY_RUN" -eq 1 ]; then
+            skip "journal vacuum (dry run, currently ${jsize:-?})"
+        else
+            say "journal vacuum"
+            record "systemd journal" "$(journal_vacuum)"
+        fi
     fi
 fi
 
 # --- Docker -------------------------------------------------------------------
+# docker prune reports its own "Total reclaimed space", which is exact and
+# cheaper than walking /var/lib/docker.
+docker_prune() {
+    local label="$1"; shift
+    local out
+    out=$("$@" 2>&1)
+    printf '%s\n' "$out" | sed 's/^/    /'
+    record "$label" "$(to_kb "$(grep -oP 'Total reclaimed space:\s*\K[0-9.]+\s*[KMGT]?B' <<<"$out" | tr -d ' B')" si)"
+}
+
 if command -v docker >/dev/null; then
     if ! docker info >/dev/null 2>&1; then
         skip "docker installed but daemon not running"
@@ -134,13 +239,23 @@ if command -v docker >/dev/null; then
         say "docker usage"
         docker system df | sed 's/^/    /'
         if confirm "prune unused images, stopped containers and build cache?"; then
-            run "docker prune" docker system prune -af
+            if [ "$DRY_RUN" -eq 1 ]; then
+                skip "docker prune (dry run)"
+            else
+                say "docker prune"
+                docker_prune "docker images/containers/build cache" docker system prune -af
+            fi
         fi
         if [ "$PRUNE_VOLUMES" -eq 1 ]; then
             printf '%s    WARNING: dangling volumes hold database data and cannot be recovered.%s\n' "$BOLD" "$RESET"
             docker volume ls -qf dangling=true | sed 's/^/    /'
             if confirm "permanently delete the volumes listed above?"; then
-                run "docker volume prune" docker volume prune -f
+                if [ "$DRY_RUN" -eq 1 ]; then
+                    skip "docker volume prune (dry run)"
+                else
+                    say "docker volume prune"
+                    docker_prune "docker volumes" docker volume prune -f
+                fi
             fi
         else
             skip "docker volumes (pass --volumes to include them)"
@@ -149,19 +264,24 @@ if command -v docker >/dev/null; then
 fi
 
 # --- report -------------------------------------------------------------------
-ROOT_FREED=$(( $(avail /) - ROOT_BEFORE ))
-HOME_FREED=$(( $(avail "$HOME") - HOME_BEFORE ))
-
 echo
-say "freed"
-printf '    %-12s %8s   (%s free)\n' "/" "$(human "$ROOT_FREED")" "$(df -Ph / | awk 'NR==2 {print $4}')"
-
-TOTAL_FREED=$ROOT_FREED
-# Only count $HOME separately when it is its own filesystem, otherwise its
-# delta is the same bytes already counted under /.
-if [ "$(stat -fc %i /)" != "$(stat -fc %i "$HOME")" ]; then
-    printf '    %-12s %8s   (%s free)\n' "$HOME" "$(human "$HOME_FREED")" "$(df -Ph "$HOME" | awk 'NR==2 {print $4}')"
-    TOTAL_FREED=$(( TOTAL_FREED + HOME_FREED ))
+if [ "$DRY_RUN" -eq 1 ]; then
+    say "dry run, nothing was deleted"
+    exit 0
 fi
 
-printf '    %s%-12s %8s%s\n' "$BOLD" "total" "$(human "$TOTAL_FREED")" "$RESET"
+say "summary"
+if [ "${#REPORT_LABELS[@]}" -eq 0 ]; then
+    printf '    nothing to free, every cache was already clean\n'
+else
+    for i in "${!REPORT_LABELS[@]}"; do
+        printf '    %-42s %9s\n' "${REPORT_LABELS[$i]}" "$(human "${REPORT_KB[$i]}")"
+    done
+fi
+printf '    %s%-42s %9s freed in total%s\n' "$BOLD" "" "$(human "$TOTAL_FREED")" "$RESET"
+
+printf '%s    now free: / %s' "$DIM" "$(df -Ph / | awk 'NR==2 {print $4}')"
+if [ "$(stat -fc %i /)" != "$(stat -fc %i "$HOME")" ]; then
+    printf ', %s %s' "$HOME" "$(df -Ph "$HOME" | awk 'NR==2 {print $4}')"
+fi
+printf '%s\n' "$RESET"
