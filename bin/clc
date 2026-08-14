@@ -232,36 +232,47 @@ docker_prune() {
     record "$label" "$(to_kb "$(grep -oP 'Total reclaimed space:\s*\K[0-9.]+\s*[KMGT]?B' <<<"$out" | tr -d ' B')" si)"
 }
 
-if command -v docker >/dev/null; then
+prune_docker_images() {
+    confirm "prune unused images, stopped containers and build cache?" || return 0
+    if [ "$DRY_RUN" -eq 1 ]; then
+        skip "docker prune (dry run)"
+        return 0
+    fi
+    say "docker prune"
+    docker_prune "docker images/containers/build cache" docker system prune -af
+}
+
+# Deletes data permanently: every guard is an early return, so the destructive
+# call below stays visible at the top level of this function.
+prune_docker_volumes() {
+    if [ "$PRUNE_VOLUMES" -ne 1 ]; then
+        skip "docker volumes (pass --volumes to include them)"
+        return 0
+    fi
+    printf '%s    WARNING: dangling volumes hold database data and cannot be recovered.%s\n' "$BOLD" "$RESET"
+    docker volume ls -qf dangling=true | sed 's/^/    /'
+    confirm "permanently delete the volumes listed above?" || return 0
+    if [ "$DRY_RUN" -eq 1 ]; then
+        skip "docker volume prune (dry run)"
+        return 0
+    fi
+    say "docker volume prune"
+    docker_prune "docker volumes" docker volume prune -f
+}
+
+clean_docker() {
+    command -v docker >/dev/null || return 0
     if ! docker info >/dev/null 2>&1; then
         skip "docker installed but daemon not running"
-    else
-        say "docker usage"
-        docker system df | sed 's/^/    /'
-        if confirm "prune unused images, stopped containers and build cache?"; then
-            if [ "$DRY_RUN" -eq 1 ]; then
-                skip "docker prune (dry run)"
-            else
-                say "docker prune"
-                docker_prune "docker images/containers/build cache" docker system prune -af
-            fi
-        fi
-        if [ "$PRUNE_VOLUMES" -eq 1 ]; then
-            printf '%s    WARNING: dangling volumes hold database data and cannot be recovered.%s\n' "$BOLD" "$RESET"
-            docker volume ls -qf dangling=true | sed 's/^/    /'
-            if confirm "permanently delete the volumes listed above?"; then
-                if [ "$DRY_RUN" -eq 1 ]; then
-                    skip "docker volume prune (dry run)"
-                else
-                    say "docker volume prune"
-                    docker_prune "docker volumes" docker volume prune -f
-                fi
-            fi
-        else
-            skip "docker volumes (pass --volumes to include them)"
-        fi
+        return 0
     fi
-fi
+    say "docker usage"
+    docker system df | sed 's/^/    /'
+    prune_docker_images
+    prune_docker_volumes
+}
+
+clean_docker
 
 # --- report -------------------------------------------------------------------
 echo
