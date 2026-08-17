@@ -20,6 +20,8 @@ Official Arch package list, installed via `sudo pacman -S --needed` by
 - Dev toolchain (`git`, `docker`, `postgresql`, `jdk21-openjdk`,
   `nodejs`, `npm`, `rust`, `android-tools`, etc.)
 - Utilities (`htop`, `fzf`, `zoxide`, `nmap`, `wireshark-qt`, etc.)
+- Typesetting (TeX Live: `texlive-latexextra`, `texlive-fontsrecommended`,
+  `texlive-xetex`, `texlive-langspanish`; plus `typst`)
 
 ## Removing packages
 
