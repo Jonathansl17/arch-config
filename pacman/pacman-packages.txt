@@ -142,12 +142,15 @@ nmap
 openbsd-netcat
 wireshark-qt
 
-# --- TeX Live ---
+# --- Typesetting (TeX Live + typst) ---
 texlive-basic
 texlive-latexrecommended
 texlive-latexextra
 texlive-langspanish
 texlive-binextra
+texlive-fontsrecommended
+texlive-xetex
+typst
 
 # --- Fun / eye candy ---
 cmatrix
