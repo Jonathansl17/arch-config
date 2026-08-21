@@ -71,3 +71,23 @@ HISTFILESIZE=20000
 shopt -s histappend cmdhist checkwinsize
 # === end history ===
 alias burpsuite="setsid -f burpsuite >/dev/null 2>&1"
+
+# === alt screen guard ===
+# Ctrl-C está mapeado a SIGTSTP (ver stty arriba), así que suspender un TUI
+# (nvim, less, htop, claude) lo detiene sin que restaure la pantalla principal.
+# La terminal queda en alt screen y, con ALTERNATE_SCROLL activo (default en
+# Alacritty 0.17, ya no configurable), la rueda emite \e[A / \e[B: el scroll
+# pasa a recorrer el historial de comandos en vez del scrollback.
+# Salir del alt screen en cada prompt lo corrige. Es no-op si ya estamos en la
+# pantalla principal, y los TUIs reentran solos al hacer `fg`.
+#
+# Va aquí y no en ~/.bash_profile: PROMPT_COMMAND es por-shell y bash no
+# exporta arrays, así que un bash anidado perdería el hook si se heredara.
+ANSI_EXIT_ALT_SCREEN=$'\e[?1049l'
+_exit_alt_screen() { printf '%s' "$ANSI_EXIT_ALT_SCREEN"; }
+# Guarda de idempotencia: `source ~/.bashrc` no debe duplicar el hook.
+case ";$PROMPT_COMMAND;" in
+    *";_exit_alt_screen;"*) ;;
+    *) PROMPT_COMMAND="_exit_alt_screen${PROMPT_COMMAND:+; $PROMPT_COMMAND}" ;;
+esac
+# === end alt screen guard ===
