@@ -12,6 +12,7 @@ and C sources (compiled at install time).
 | `e`               | Master PDF Editor launcher (`masterpdfeditor4`, detached) |
 | `freeoffice-textmaker`, `freeoffice-planmaker`, `freeoffice-presentations` | FreeOffice launchers (detached); shadow the `/usr/bin/` binaries of the same name |
 | `s`               | git stage + auto-generated commit message + push (aborts on secret patterns) |
+| `S`               | git stage + generic `updats` commit + push (aborts on secret patterns) |
 | `monitor`         | External display layout: `right-of`, `left-of`, `off`, `status` |
 | `vm`              | Volume + mic status (PipeWire via `wpctl`) |
 | `wifi`            | Interactive WiFi/LAN manager (nmcli wrapper) |
