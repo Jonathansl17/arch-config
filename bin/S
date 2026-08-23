@@ -1,0 +1,23 @@
+#!/bin/bash
+# Stage all + commit with a generic message + push.
+# Aborts if staged files match suspicious names (.env, secrets, keys).
+
+COMMIT_MSG="updats"
+
+git add . || exit $?
+
+SECRET_PATTERN='\.env|\.pem|\.key$|secret|credential|id_rsa|id_ed25519'
+hits=$(git diff --cached --name-only | grep -iE "$SECRET_PATTERN" || true)
+if [ -n "$hits" ]; then
+    echo "ABORT: possible secrets staged:" >&2
+    echo "$hits" >&2
+    echo "Inspect with: git diff --cached --name-only" >&2
+    exit 1
+fi
+
+if git diff --cached --quiet; then
+    echo "ABORT: no staged changes" >&2
+    exit 1
+fi
+
+git commit -m "$COMMIT_MSG" && git push
