@@ -10,9 +10,10 @@ and C sources (compiled at install time).
 | `b`               | Battery status (capacity, charging state, time-to-empty) |
 | `clc`             | Clean every cache (pacman, AUR, pnpm/npm/pip/go, journal, Docker) and report freed space |
 | `e`               | Master PDF Editor launcher (`masterpdfeditor4`, detached) |
+| `fc`              | Fix claude: repins `~/.local/bin/claude` to the newest build that survives a `--version` smoke test (aliased over the `fc` builtin) |
 | `freeoffice-textmaker`, `freeoffice-planmaker`, `freeoffice-presentations` | FreeOffice launchers (detached); shadow the `/usr/bin/` binaries of the same name |
 | `s`               | git stage + auto-generated commit message + push (aborts on secret patterns) |
-| `S`               | git stage + generic `updats` commit + push (aborts on secret patterns) |
+| `S`               | git stage + generic `updates` commit + push (aborts on secret patterns) |
 | `monitor`         | External display layout: `right-of`, `left-of`, `off`, `status` |
 | `vm`              | Volume + mic status (PipeWire via `wpctl`) |
 | `wifi`            | Interactive WiFi/LAN manager (nmcli wrapper) |

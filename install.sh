@@ -266,6 +266,10 @@ if [[ ! -x "$HOME/.local/bin/claude" ]]; then
 else
     say "Claude Code already present at ~/.local/bin/claude (skipping)"
 fi
+# Some releases segfault on this glibc, so pin the newest build that runs.
+if [[ -x "$HOME/bin/fc" ]]; then
+    "$HOME/bin/fc" || say "fc: could not pin a working Claude Code build"
+fi
 
 # --- 4e-quater. Go-installed CLI tools ---
 # Binaries fetched with `go install`; they land in ~/go/bin (GOPATH/bin), which
