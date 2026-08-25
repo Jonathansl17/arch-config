@@ -2,7 +2,7 @@
 # Stage all + commit with a generic message + push.
 # Aborts if staged files match suspicious names (.env, secrets, keys).
 
-COMMIT_MSG="updats"
+COMMIT_MSG="updates"
 
 git add . || exit $?
 
