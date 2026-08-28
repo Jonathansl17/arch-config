@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import sys, os
+from termclip_owner import claim_clipboard_owner
 from PyQt5.QtGui import QGuiApplication, QClipboard
 from PyQt5.QtCore import QMimeData
 
@@ -36,5 +37,8 @@ mime = QMimeData()
 mime.setText(content)
 
 cb.setMimeData(mime, mode=QClipboard.Clipboard)
+
+# Only one termclip backend may hold the clipboard at a time.
+claim_clipboard_owner()
 
 app.exec_()

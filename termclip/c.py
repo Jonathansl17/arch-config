@@ -3,6 +3,7 @@
 
 import sys, os, pathlib
 from urllib.parse import quote
+from termclip_owner import claim_clipboard_owner
 from PyQt5.QtGui import QGuiApplication, QClipboard, QImage
 from PyQt5.QtCore import QMimeData, QBuffer, QByteArray, QIODevice
 
@@ -52,5 +53,8 @@ if len(paths) == 1:
             mime.setData("image/png", QByteArray(buf.data()))
 
 cb.setMimeData(mime, mode=QClipboard.Clipboard)
+
+# Only one termclip backend may hold the clipboard at a time.
+claim_clipboard_owner()
 
 app.exec_()

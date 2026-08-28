@@ -78,7 +78,7 @@ missing=0
 if [ -z "$SCRIPT_DIR" ]; then
   missing=1
 else
-  for f in c.py v.py cc.py cpwd.py; do
+  for f in c.py v.py cc.py cpwd.py termclip_owner.py; do
     [ -f "$SCRIPT_DIR/$f" ] || { missing=1; break; }
   done
 fi
@@ -90,14 +90,15 @@ else
   trap 'rm -rf "$WORKDIR"' EXIT
   echo "Standalone mode — fetching backends into $WORKDIR"
   cd "$WORKDIR"
-  for f in c.py v.py cc.py cpwd.py; do
+  for f in c.py v.py cc.py cpwd.py termclip_owner.py; do
     fetch_if_missing "$f"
   done
   SRC_DIR="$WORKDIR"
 fi
 
 # --- Step 4: Copy backends + write wrappers ---
-cp -f "$SRC_DIR"/c.py "$SRC_DIR"/cc.py "$SRC_DIR"/cpwd.py "$SRC_DIR"/v.py "$BIN_DIR/"
+cp -f "$SRC_DIR"/c.py "$SRC_DIR"/cc.py "$SRC_DIR"/cpwd.py "$SRC_DIR"/v.py \
+      "$SRC_DIR"/termclip_owner.py "$BIN_DIR/"
 chmod u+x "$BIN_DIR/c.py" "$BIN_DIR/cc.py" "$BIN_DIR/cpwd.py" "$BIN_DIR/v.py"
 
 cat > "$BIN_DIR/c" <<'EOF'
@@ -106,7 +107,6 @@ if [ $# -lt 1 ]; then
     echo "Usage: c file1 file2 ..."
     exit 1
 fi
-pkill -f "$HOME/bin/c.py" 2>/dev/null
 "$HOME/bin/c.py" "$@" >/dev/null 2>&1 & disown
 echo "Files copied to clipboard:"
 for f in "$@"; do
@@ -120,7 +120,6 @@ if [ $# -lt 1 ]; then
     echo "Usage: cc file"
     exit 1
 fi
-pkill -f "$HOME/bin/cc.py" 2>/dev/null
 "$HOME/bin/cc.py" "$1" >/dev/null 2>&1 & disown
 echo "Content copied to clipboard from:"
 echo "   $1"
@@ -129,7 +128,6 @@ EOF
 cat > "$BIN_DIR/cpwd" <<'EOF'
 #!/usr/bin/env bash
 target="${1:-$(pwd)}"
-pkill -f "$HOME/bin/cpwd.py" 2>/dev/null
 "$HOME/bin/cpwd.py" "$target" >/dev/null 2>&1 & disown
 echo "Path copied to clipboard:"
 echo "   $target"
