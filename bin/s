@@ -22,11 +22,13 @@ RAW=$(git diff --cached | claude -p "Generate a concise commit message in Englis
 
 # Strip leading/trailing whitespace, code fences (``` lines), and wrapping
 # backticks/quotes that claude -p sometimes adds despite the instructions.
+# The blank line between subject and body is significant, so only leading blank
+# lines and per-line trailing whitespace are removed. Command substitution
+# already drops the trailing newlines.
 MSG=$(printf '%s\n' "$RAW" \
     | sed -e '/^[[:space:]]*```[[:alnum:]]*[[:space:]]*$/d' \
     | awk 'NF || p {print; p=1}' \
-    | awk 'BEGIN{RS=""; ORS=""} {print}' \
-    | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+    | sed -e 's/[[:space:]]*$//')
 
 # Unwrap if the whole message is enclosed in matching backticks or quotes.
 case "$MSG" in
