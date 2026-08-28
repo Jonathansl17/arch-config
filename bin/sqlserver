@@ -1,0 +1,146 @@
+#!/bin/bash
+# Manage a local SQL Server instance running in Docker.
+# The SA password is never stored: it is chosen when the container is created
+# and asked again on every run, as authentication.
+set -uo pipefail
+
+IMAGE="mcr.microsoft.com/mssql/server:2022-latest"
+CONTAINER="mssql"
+VOLUME="mssql-data"
+BIND="127.0.0.1:1433"          # localhost only: Docker would otherwise bypass the firewall
+EDITION="Developer"            # full feature set, free for dev/test, not for production
+SQLCMD="/opt/mssql-tools18/bin/sqlcmd"
+MIN_PASSWORD_LEN=8
+MAX_PASSWORD_LEN=128
+MIN_PASSWORD_CATEGORIES=3      # SQL Server wants 3 of: upper, lower, digit, symbol
+MAX_AUTH_ATTEMPTS=3
+READY_TIMEOUT=90
+
+GREEN='\033[0;32m'; RED='\033[0;31m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; NC='\033[0m'
+
+die() { echo -e "${RED}$*${NC}" >&2; exit 1; }
+info() { echo -e "${CYAN}$*${NC}"; }
+warn() { echo -e "${YELLOW}$*${NC}"; }
+ok() { echo -e "${GREEN}$*${NC}"; }
+
+require_docker() {
+  command -v docker >/dev/null || die "docker is not installed."
+  docker info >/dev/null 2>&1 || die "Docker daemon is not running. Start it with: sudo systemctl start docker"
+}
+
+# SQL Server refuses to start if the initial password fails its own policy:
+# 8 to 128 characters and at least 3 of the 4 character categories.
+valid_password() {
+  local p="$1" categories=0
+  ((${#p} >= MIN_PASSWORD_LEN && ${#p} <= MAX_PASSWORD_LEN)) || return 1
+  [[ "$p" == *[[:upper:]]* ]] && ((categories++))
+  [[ "$p" == *[[:lower:]]* ]] && ((categories++))
+  [[ "$p" == *[[:digit:]]* ]] && ((categories++))
+  [[ "$p" == *[^[:alnum:]]* ]] && ((categories++))
+  ((categories >= MIN_PASSWORD_CATEGORIES))
+}
+
+# Asked once, only when the container is created. Sets SQLCMDPASSWORD.
+ask_new_password() {
+  local first second
+  while true; do
+    read -rsp "Choose the SA password: " first; echo
+    read -rsp "Repeat it: " second; echo
+    [[ "$first" == "$second" ]] || { warn "They do not match."; continue; }
+    valid_password "$first" || {
+      warn "SQL Server requires ${MIN_PASSWORD_LEN}-${MAX_PASSWORD_LEN} chars and ${MIN_PASSWORD_CATEGORIES} of: uppercase, lowercase, digit, symbol."
+      continue
+    }
+    export SQLCMDPASSWORD="$first"
+    warn "It is not stored anywhere. Remember it or you lose access to the databases."
+    return 0
+  done
+}
+
+ensure_image() {
+  docker image inspect "$IMAGE" >/dev/null 2>&1 && return 0
+  info "Pulling $IMAGE (a few GB, one time only)..."
+  docker pull "$IMAGE" || die "Could not pull the image."
+}
+
+container_state() { docker inspect -f '{{.State.Status}}' "$CONTAINER" 2>/dev/null; }
+
+create_container() {
+  info "Creating container $CONTAINER..."
+  docker volume create "$VOLUME" >/dev/null
+  MSSQL_SA_PASSWORD="$SQLCMDPASSWORD" docker run -d --name "$CONTAINER" --restart unless-stopped \
+    -e ACCEPT_EULA=Y -e MSSQL_SA_PASSWORD -e "MSSQL_PID=$EDITION" \
+    -p "$BIND:1433" -v "$VOLUME:/var/opt/mssql" "$IMAGE" >/dev/null \
+    || die "Could not create the container."
+}
+
+# 0 = engine up and password accepted, 2 = wrong password, 1 = not ready yet.
+probe() {
+  local out rc
+  out=$(docker exec -e SQLCMDPASSWORD "$CONTAINER" "$SQLCMD" -S localhost -U sa -C -Q "SELECT 1" 2>&1)
+  rc=$?
+  ((rc == 0)) && return 0
+  [[ "$out" == *"Login failed"* ]] && return 2
+  return 1
+}
+
+# Poll the engine instead of the container status: it accepts connections seconds later.
+wait_ready() {
+  local waited=0 rc
+  while ((waited < READY_TIMEOUT)); do
+    probe; rc=$?
+    ((rc == 0 || rc == 2)) && return $rc
+    [[ "$(container_state)" == "running" ]] || die "The container died. See: sqlserver logs"
+    sleep 2; ((waited += 2))
+  done
+  die "Not ready after ${READY_TIMEOUT}s. See: sqlserver logs"
+}
+
+# Asks for the password until the engine accepts it. Sets SQLCMDPASSWORD.
+authenticate() {
+  local attempt=1
+  while ((attempt <= MAX_AUTH_ATTEMPTS)); do
+    read -rsp "SA password: " SQLCMDPASSWORD; echo
+    export SQLCMDPASSWORD
+    wait_ready && return 0
+    warn "Wrong password ($attempt/$MAX_AUTH_ATTEMPTS)."
+    ((attempt++))
+  done
+  die "Authentication failed."
+}
+
+cmd_start() {
+  ensure_image
+  local state; state=$(container_state)
+  case "$state" in
+    "")      ask_new_password; create_container; info "Waiting for the engine..."
+             wait_ready || die "The engine rejected the password. Run: sqlserver destroy" ;;
+    running) authenticate ;;
+    *)       info "Starting container..."
+             docker start "$CONTAINER" >/dev/null || die "Could not start it."
+             authenticate ;;
+  esac
+  ok "SQL Server ready on $BIND (user: sa). Open a session with: sqlserver shell"
+}
+
+cmd_shell() {
+  [[ "$(container_state)" == "running" ]] || cmd_start
+  [[ -n "${SQLCMDPASSWORD:-}" ]] || authenticate
+  docker exec -it -e SQLCMDPASSWORD "$CONTAINER" "$SQLCMD" -S localhost -U sa -C
+}
+
+case "${1:-start}" in
+  start|"")  require_docker; cmd_start ;;
+  shell|sql) require_docker; cmd_shell ;;
+  stop)      require_docker; docker stop "$CONTAINER" >/dev/null && ok "Stopped." ;;
+  restart)   require_docker; docker restart "$CONTAINER" >/dev/null && ok "Restarted." ;;
+  status)    require_docker; st=$(container_state); echo "State: ${st:-not created}" ;;
+  logs)      require_docker; docker logs --tail 50 -f "$CONTAINER" ;;
+  destroy)   require_docker
+             read -rp "Delete container AND every database in volume $VOLUME? (yes/N) " a
+             [[ "$a" == "yes" ]] || exit 0
+             docker rm -f "$CONTAINER" >/dev/null 2>&1
+             docker volume rm "$VOLUME" >/dev/null 2>&1
+             ok "Removed." ;;
+  *)         echo "Usage: sqlserver [start|shell|stop|restart|status|logs|destroy]" ;;
+esac

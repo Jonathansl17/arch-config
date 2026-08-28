@@ -106,6 +106,7 @@ maven
 nodejs
 npm
 postgresql
+dbeaver
 python-pyqt5
 python-pipx
 python-pymupdf
