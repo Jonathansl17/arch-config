@@ -27,7 +27,7 @@ manager.
 ### One-liner (recommended, pinned to latest stable tag)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Jonathansl17/termclip/v1.3.2/instalation.sh | TERMCLIP_REF=v1.3.2 bash
+curl -fsSL https://raw.githubusercontent.com/Jonathansl17/termclip/v1.4.0/instalation.sh | TERMCLIP_REF=v1.4.0 bash
 ```
 
 Tags are immutable, so this URL is not affected by the GitHub raw CDN
@@ -52,7 +52,8 @@ bash instalation.sh
 1. Installs `python3` + `PyQt5` if missing (`pacman`, `apt`, `dnf`, or
    `zypper` — auto-detected; no-op if both are already present).
 2. Creates `~/bin` if missing.
-3. Copies `c.py`, `cc.py`, `cpwd.py`, `v.py` to `~/bin/`.
+3. Copies `c.py`, `cc.py`, `cpwd.py`, `v.py` and the shared
+   `termclip_owner.py` helper to `~/bin/`.
 4. Writes bash wrappers `c`, `cc`, `cpwd`, `v` to `~/bin/` (`chmod +x`).
 5. Prints a summary.
 

@@ -19,18 +19,22 @@ Upstream README preserved as [`UPSTREAM_README.md`](UPSTREAM_README.md).
 | `cc.py`              | Copy text content of a file to clipboard |
 | `cpwd.py`            | Copy current (or given) path to clipboard |
 | `v.py`               | Paste files from clipboard into cwd |
-| `instalation.sh`     | Installer: drops `.py` backends + bash wrappers into `~/bin/`, ensures `~/bin` is on PATH inside `~/.bashrc` |
+| `termclip_owner.py`  | Shared helper: keeps only one clipboard backend alive |
+| `instalation.sh`     | Installer: ensures python3 + PyQt5, drops `.py` backends + bash wrappers into `~/bin/` |
 | `UPSTREAM_README.md` | Upstream termclip readme |
 
 ## What instalation.sh does
 
-1. Creates `~/bin` if missing.
-2. Copies `c.py cc.py cpwd.py v.py` to `~/bin/` (chmod +x).
-3. Writes bash wrappers `c cc cpwd v` to `~/bin/` (chmod +x).
-4. Prints a summary of installed commands.
+1. Installs `python3` + PyQt5 if missing, via the system package
+   manager (pacman/apt/dnf/zypper).
+2. Creates `~/bin` if missing.
+3. Copies `c.py cc.py cpwd.py v.py termclip_owner.py` to `~/bin/`
+   (the four entry points get chmod +x).
+4. Writes bash wrappers `c cc cpwd v` to `~/bin/` (chmod +x).
+5. Prints a summary of installed commands.
 
-Does **not** touch `~/.bashrc`, `~/.profile`, or PATH. Does **not**
-install PyQt5. Callers are responsible for both.
+Does **not** touch `~/.bashrc`, `~/.profile`, or PATH — the caller is
+responsible for having `~/bin` on it.
 
 ## Requirements
 
@@ -51,7 +55,7 @@ When upstream termclip changes, sync manually:
 
 ```sh
 cd ~/termclip && git pull
-cp ~/termclip/{c.py,cc.py,cpwd.py,v.py,instalation.sh,README.md} \
+cp ~/termclip/{c.py,cc.py,cpwd.py,v.py,termclip_owner.py,instalation.sh,README.md} \
    ~/arch-config/termclip/
 mv ~/arch-config/termclip/README.md ~/arch-config/termclip/UPSTREAM_README.md
 # (keep this local README.md as-is)
