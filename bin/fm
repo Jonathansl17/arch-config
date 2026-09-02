@@ -1,0 +1,150 @@
+#!/usr/bin/env bash
+# fm — fix audio: restart the PipeWire stack, clear stale sink nodes, unmute
+# every sink and point the default at a device that actually exists.
+# Symptom: sound dies out of nowhere and media with audio refuses to play, while
+# the journal shows "snd_pcm_status error: No such device" — a USB audio device
+# was re-enumerated and PipeWire kept the old, dead node as the default sink.
+# Idempotent: safe to run any number of times, whether or not audio is broken.
+
+set -uo pipefail
+
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+AUDIO_UNITS=(pipewire.socket pipewire-pulse.socket pipewire.service pipewire-pulse.service wireplumber.service)
+# Seconds to wait for pipewire-pulse to answer after a restart.
+READY_TIMEOUT=15
+READY_POLL_SECS=1
+# Placeholder names PulseAudio reports while no real device is available yet.
+NULL_SINK='auto_null'
+NO_DEFAULT='@DEFAULT_SINK@'
+# Volume floor: a sink left near zero is indistinguishable from broken audio.
+MIN_VOLUME_PCT=40
+RESTORE_VOLUME_PCT=70
+
+say()  { printf "${CYAN}==>${NC} %s\n" "$*"; }
+ok()   { printf "${GREEN}  ok${NC} %s\n" "$*"; }
+warn() { printf "${YELLOW}  !!${NC} %s\n" "$*"; }
+die()  { printf "${RED}!!${NC} %s\n" "$*" >&2; exit 1; }
+
+# Echo "id<TAB>name<TAB>state" per sink.
+list_sinks() {
+  pactl list short sinks 2>/dev/null | awk -F'\t' '{print $1"\t"$2"\t"$5}'
+}
+
+# A sink is live when its ALSA device still exists under /proc/asound. Stale
+# nodes left behind by a re-enumerated USB device point at a card that is gone.
+sink_card_present() {
+  local name="$1" bus_id
+  case "$name" in
+    alsa_output.pci-*)
+      bus_id="${name#alsa_output.pci-}"
+      bus_id="${bus_id%%.*}"
+      grep -qF "$bus_id" /proc/asound/card*/id /proc/asound/cards 2>/dev/null && return 0
+      # Card ids do not carry the PCI address; fall back to any HDA card.
+      grep -q 'HDA' /proc/asound/cards 2>/dev/null
+      ;;
+    alsa_output.usb-*)
+      grep -qi 'usb' /proc/asound/cards 2>/dev/null
+      ;;
+    *) return 0 ;;
+  esac
+}
+
+restart_stack() {
+  say "Restarting the PipeWire stack"
+  systemctl --user restart "${AUDIO_UNITS[@]}" 2>/dev/null \
+    || die "Could not restart: ${AUDIO_UNITS[*]}"
+  local waited=0
+  while ! real_sink_available; do
+    (( waited >= READY_TIMEOUT )) && die "no real sink appeared within ${READY_TIMEOUT}s."
+    sleep "$READY_POLL_SECS"
+    waited=$(( waited + READY_POLL_SECS ))
+  done
+  ok "audio devices back after ${waited}s"
+}
+
+# True once wireplumber has published at least one sink that is not the null
+# fallback, which is what the rest of the run needs to act on.
+real_sink_available() {
+  pactl info >/dev/null 2>&1 || return 1
+  list_sinks | cut -f2 | grep -qv "^${NULL_SINK}\$"
+}
+
+unmute_sinks() {
+  local id name state volume
+  say "Unmuting sinks and restoring volume"
+  while IFS=$'\t' read -r id name state; do
+    [[ -n "$name" ]] || continue
+    pactl set-sink-mute "$name" 0 2>/dev/null || { warn "could not unmute $name"; continue; }
+    # get-sink-volume prints one percentage per channel; the first is enough.
+    volume=$(pactl get-sink-volume "$name" 2>/dev/null | grep -o '[0-9]\+%' | head -n1 | tr -d '%')
+    if [[ -n "$volume" ]] && (( volume < MIN_VOLUME_PCT )); then
+      pactl set-sink-volume "$name" "${RESTORE_VOLUME_PCT}%" 2>/dev/null \
+        && volume="$RESTORE_VOLUME_PCT" || warn "could not set volume on $name"
+    fi
+    ok "$name unmuted (volume ${volume:-unknown}%)"
+  done < <(list_sinks)
+}
+
+# Prefer the current default when its card is still present; otherwise take the
+# first sink backed by a real card, so playback never lands on a dead node.
+pick_default_sink() {
+  local current id name state
+  current=$(pactl get-default-sink 2>/dev/null)
+  if [[ -n "$current" && "$current" != "$NO_DEFAULT" && "$current" != "$NULL_SINK" ]] \
+     && sink_card_present "$current"; then
+    printf '%s\n' "$current"
+    return 0
+  fi
+  while IFS=$'\t' read -r id name state; do
+    [[ "$name" == "$NULL_SINK" ]] && continue
+    if sink_card_present "$name"; then
+      printf '%s\n' "$name"
+      return 0
+    fi
+  done < <(list_sinks)
+  return 1
+}
+
+set_default_sink() {
+  local target
+  say "Selecting the default sink"
+  target=$(pick_default_sink) || { warn "no sink with a present card; leaving the default alone"; return; }
+  pactl set-default-sink "$target" 2>/dev/null || { warn "could not set $target as default"; return; }
+  ok "default sink: $target"
+  move_streams "$target"
+}
+
+# A stream stuck on a stale node stays silent even once the default is fixed.
+move_streams() {
+  local target="$1" input
+  say "Moving playback streams to the default sink"
+  while read -r input _; do
+    [[ -n "$input" ]] || continue
+    pactl move-sink-input "$input" "$target" 2>/dev/null \
+      && ok "stream $input moved" || warn "could not move stream $input"
+  done < <(pactl list short sink-inputs 2>/dev/null)
+}
+
+show_status() {
+  local id name state default mark
+  default=$(pactl get-default-sink 2>/dev/null)
+  say "Sinks"
+  while IFS=$'\t' read -r id name state; do
+    [[ "$name" == "$default" ]] && mark="${GREEN}*${NC}" || mark=" "
+    printf "  %b %-60s %s\n" "$mark" "$name" "$state"
+  done < <(list_sinks)
+}
+
+for tool in pactl systemctl; do
+  command -v "$tool" >/dev/null 2>&1 || die "$tool not found. Install pipewire-pulse and systemd."
+done
+
+restart_stack
+unmute_sinks
+set_default_sink
+show_status
