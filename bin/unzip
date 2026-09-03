@@ -1,0 +1,30 @@
+#!/bin/bash
+# unzip wrapper. Archives built on Windows or downloaded from Kaggle carry 777
+# perms, which ls paints with the "other-writable" warning colour. Extract with
+# the real unzip, then normalise only the entries this archive created:
+# 755 for directories, 644 for files.
+# No recursion: the real binary is called by absolute path.
+UNZIP_BIN=/usr/bin/unzip
+
+archive=""
+dest="."
+prev=""
+for arg in "$@"; do
+    [ "$prev" = "-d" ] && dest=$arg
+    case "$arg" in
+        -*) ;;
+        *) [ -z "$archive" ] && archive=$arg ;;
+    esac
+    prev=$arg
+done
+
+"$UNZIP_BIN" "$@" || exit
+[ -n "$archive" ] || exit 0
+
+# -Z1 lists the archive's entries, one per line, without extracting anything.
+"$UNZIP_BIN" -Z1 "$archive" 2>/dev/null | while IFS= read -r entry; do
+    path="$dest/$entry"
+    [ -d "$path" ] && chmod 755 "$path"
+    [ -f "$path" ] && chmod 644 "$path"
+done
+exit 0
