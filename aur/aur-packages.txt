@@ -24,5 +24,6 @@ pgadmin4-desktop-bin
 pgadmin4-server-bin
 postman-bin
 python312
+rstudio-desktop-bin
 ttf-ms-fonts
 visual-studio-code-bin
