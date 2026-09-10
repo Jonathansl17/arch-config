@@ -90,6 +90,7 @@ obs-studio
 telegram-desktop
 discord
 freerdp
+libreoffice-fresh
 
 # --- Development ---
 git
