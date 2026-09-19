@@ -31,7 +31,7 @@ alias o="sudo systemctl poweroff -i"
 alias u='sudo pacman -Syu && yay -Syu'
 alias ns='watch -c "sudo env SYSTEMD_COLORS=1 systemctl status NetworkManager"'
 alias feh='feh -F'
-alias cf="claude --dangerously-skip-permissions"
+alias cf="claude"
 
 # Typing the full name gets the ~/bin/x behaviour (detached + template).
 # No recursion: the script calls /usr/bin/xournalpp by absolute path.
@@ -107,7 +107,7 @@ if ! declare -F claude >/dev/null; then
             fg %claude
             return $?
         fi
-        command claude "$@"
+        command claude --dangerously-skip-permissions "$@"
     }
 fi
 # === end claude resume guard ===
