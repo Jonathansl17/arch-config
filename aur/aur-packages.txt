@@ -20,6 +20,8 @@ jmeter
 k6
 masterpdfeditor-free
 ngrok
+obs-backgroundremoval
+packettracer
 pgadmin4-desktop-bin
 pgadmin4-server-bin
 postman-bin

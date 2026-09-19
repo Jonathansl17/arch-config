@@ -1,2 +1,6 @@
 sherlock-project
 holehe
+git-filter-repo
+packet-tracer-mcp
+whisper-ctranslate2
+yt-dlp

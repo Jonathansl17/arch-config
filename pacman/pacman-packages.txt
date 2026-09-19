@@ -14,6 +14,7 @@ efibootmgr
 os-prober
 sudo
 zram-generator
+gptfdisk
 
 # --- Network ---
 networkmanager
@@ -21,7 +22,6 @@ network-manager-applet
 wpa_supplicant
 wget
 ufw
-openssh
 
 # --- Bluetooth ---
 bluez
@@ -91,6 +91,13 @@ telegram-desktop
 discord
 freerdp
 libreoffice-fresh
+vlc
+vlc-plugin-ffmpeg
+vlc-plugin-live555
+wine
+wine-gecko
+wine-mono
+winetricks
 
 # --- Development ---
 git
@@ -100,7 +107,6 @@ clang
 gdb
 docker
 docker-compose
-go
 jdk21-openjdk
 jdk-openjdk
 maven
@@ -114,6 +120,9 @@ python-pymupdf
 rust
 tk
 android-tools
+graphviz
+llvm
+utf8cpp
 
 # --- Shell / CLI utilities ---
 bash-completion
