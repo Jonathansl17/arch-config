@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+# video — ffmpeg front-end for everyday clip surgery. Inputs may be local
+# files or URLs (anything yt-dlp understands, e.g. YouTube); URLs are fetched
+# into a temp dir that is removed on exit.
+#
+#   video cut   [-n NAME|-o OUT] [--copy] INPUT START END [START END ...]
+#   video join  [-n NAME|-o OUT] INPUT INPUT [INPUT ...]
+#   video audio [-n NAME|-o OUT] INPUT [INPUT ...]
+#
+# Times: SS, MM:SS or HH:MM:SS, optional fraction (2:01, 49:01, 1:02:03.5).
+
+set -euo pipefail
+
+readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=video-lib.sh
+source "$SCRIPT_DIR/video-lib.sh"
+# shellcheck source=video-fetch.sh
+source "$SCRIPT_DIR/video-fetch.sh"
+# shellcheck source=video-cmds.sh
+source "$SCRIPT_DIR/video-cmds.sh"
+
+readonly REQUIRED_TOOLS=(ffmpeg ffprobe yt-dlp awk realpath)
+# Globals on purpose: the EXIT trap runs after main's locals are gone, and
+# OUT_NAME is read by default_output from every subcommand.
+tmp_dir=""
+OUT_NAME=""
+
+usage() {
+  cat <<'EOF'
+usage: video <command> [options] <args>
+
+commands:
+  cut  INPUT START END [START END ...]  extract one or more ranges
+  join INPUT INPUT [INPUT ...]          concatenate inputs in order
+  audio INPUT [INPUT ...]               extract the audio track of each input
+
+options:
+  -n, --name NAME     output name without extension; several outputs become NAME-1, NAME-2...
+                      (default: <input>-cut[-N].mp4 / -joined.mp4 / -audio[-N].<ext>)
+  -o, --output FILE   exact output path, single output only
+                      for audio, the extension of FILE picks the encoding (.mp3, .ogg...)
+      --copy          cut: stream copy instead of re-encoding (fast, keyframe-bound)
+  -h, --help          this text
+
+inputs are local files or URLs (fetched with yt-dlp).
+times: SS | MM:SS | HH:MM:SS, fraction allowed (2:01, 49:01, 1:02:03.5)
+
+examples:
+  video cut movie.mp4 2:01 49:01
+  video cut -n clip movie.mp4 0:10 0:20 1:00 1:30   # clip-1.mp4, clip-2.mp4
+  video join -n full https://youtu.be/a https://youtu.be/b   # full.mp4
+  video cut -o intro.mp4 https://youtu.be/xyz 0 0:30
+  video join part1.mp4 part2.mp4 part3.mp4
+  video join -o all.mp4 https://youtu.be/a https://youtu.be/b
+  video audio talk.mp4 https://youtu.be/xyz           # one audio file per input
+  video audio -o song.mp3 https://youtu.be/xyz
+URLs are always fetched at the best available quality.
+EOF
+}
+
+main() {
+  local command="${1:-}" output="" copy=0
+  local -a args=()
+  [[ -n "$command" ]] || { usage >&2; exit 1; }
+  case "$command" in
+    -h|--help) usage; exit 0 ;;
+    cut|join|audio) shift ;;
+    *) die "unknown command '$command' (see video --help)" ;;
+  esac
+
+  while (( $# )); do
+    case "$1" in
+      -o|--output) [[ -n "${2:-}" ]] || die "$1 needs a value"; output="$2"; shift 2 ;;
+      -n|-name|--name) [[ -n "${2:-}" ]] || die "$1 needs a value"; OUT_NAME="$2"; shift 2 ;;
+      --copy) copy=1; shift ;;
+      -h|--help) usage; exit 0 ;;
+      --) shift; args+=("$@"); break ;;
+      -*) die "unknown option '$1'" ;;
+      *) args+=("$1"); shift ;;
+    esac
+  done
+  [[ "$copy" == 0 || "$command" == cut ]] || die "--copy only applies to cut"
+  [[ -z "$output" || -z "$OUT_NAME" ]] || die "use either --name or --output, not both"
+  [[ "$OUT_NAME" != */* ]] || die "--name is a bare name; use --output for a path"
+
+  require_tools "${REQUIRED_TOOLS[@]}"
+  tmp_dir=$(mktemp -d)
+  trap 'rm -rf "$tmp_dir"' EXIT
+
+  case "$command" in
+    cut)  (( ${#args[@]} >= 1 )) || die "cut needs INPUT START END"
+          cmd_cut "$output" "$copy" "$tmp_dir" "${args[@]}" ;;
+    join) cmd_join "$output" "$tmp_dir" "${args[@]}" ;;
+    audio) cmd_audio "$output" "$tmp_dir" "${args[@]}" ;;
+  esac
+}
+
+main "$@"
