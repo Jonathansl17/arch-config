@@ -28,7 +28,7 @@ manager.
 ### One-liner (recommended, pinned to latest stable tag)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Jonathansl17/termclip/v1.4.0/instalation.sh | TERMCLIP_REF=v1.4.0 bash
+curl -fsSL https://raw.githubusercontent.com/Jonathansl17/termclip/v1.5.0/instalation.sh | TERMCLIP_REF=v1.5.0 bash
 ```
 
 Tags are immutable, so this URL is not affected by the GitHub raw CDN
