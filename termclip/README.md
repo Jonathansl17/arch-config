@@ -1,7 +1,7 @@
 # termclip (vendored, **optional**)
 
 Vendored copy of [termclip](https://github.com/Jonathansl17/termclip) —
-terminal clipboard utilities (`c`, `cc`, `cpwd`, `v`). Not run by
+terminal clipboard utilities (`c`, `cc`, `cpwd`, `crp`, `v`). Not run by
 `install.sh`. Run manually after the main install if you want these
 commands.
 
@@ -17,7 +17,7 @@ Upstream README preserved as [`UPSTREAM_README.md`](UPSTREAM_README.md).
 |----------------------|---------|
 | `c.py`               | Copy files/folders to clipboard (Nautilus-compatible) |
 | `cc.py`              | Copy text content of a file to clipboard |
-| `cpwd.py`            | Copy current (or given) path to clipboard |
+| `cpwd.py`            | Copy current (or given) path to clipboard (also backs the `crp` wrapper) |
 | `v.py`               | Paste files from clipboard into cwd |
 | `termclip_owner.py`  | Shared helper: keeps only one clipboard backend alive |
 | `instalation.sh`     | Installer: ensures python3 + PyQt5, drops `.py` backends + bash wrappers into `~/bin/` |
@@ -30,7 +30,7 @@ Upstream README preserved as [`UPSTREAM_README.md`](UPSTREAM_README.md).
 2. Creates `~/bin` if missing.
 3. Copies `c.py cc.py cpwd.py v.py termclip_owner.py` to `~/bin/`
    (the four entry points get chmod +x).
-4. Writes bash wrappers `c cc cpwd v` to `~/bin/` (chmod +x).
+4. Writes bash wrappers `c cc cpwd crp v` to `~/bin/` (chmod +x).
 5. Prints a summary of installed commands.
 
 Does **not** touch `~/.bashrc`, `~/.profile`, or PATH — the caller is

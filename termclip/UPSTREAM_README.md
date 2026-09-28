@@ -14,6 +14,7 @@ manager.
 - Copy files or folders to the system clipboard (`c`)
 - Copy the text content of a file to the clipboard (`cc`)
 - Copy the current working directory path to the clipboard (`cpwd`)
+- Copy the absolute path of a file to the clipboard (`crp`)
 - Paste files from the clipboard into the current directory (`v`)
 - Compatible with GNOME / Nautilus and other Linux desktops that honor the
   `x-special/gnome-copied-files` clipboard format
@@ -54,7 +55,7 @@ bash instalation.sh
 2. Creates `~/bin` if missing.
 3. Copies `c.py`, `cc.py`, `cpwd.py`, `v.py` and the shared
    `termclip_owner.py` helper to `~/bin/`.
-4. Writes bash wrappers `c`, `cc`, `cpwd`, `v` to `~/bin/` (`chmod +x`).
+4. Writes bash wrappers `c`, `cc`, `cpwd`, `crp`, `v` to `~/bin/` (`chmod +x`).
 5. Prints a summary.
 
 It does **not** touch `~/.bashrc`, `~/.profile`, or `PATH`. Make sure
@@ -63,7 +64,7 @@ It does **not** touch `~/.bashrc`, `~/.profile`, or `PATH`. Make sure
 
 ## Updating
 
-Re-run the installer. It overwrites `~/bin/{c,cc,cpwd,v,c.py,cc.py,cpwd.py,v.py}`
+Re-run the installer. It overwrites `~/bin/{c,cc,cpwd,crp,v,c.py,cc.py,cpwd.py,v.py}`
 in place. No accumulated state to clean.
 
 ---
@@ -108,6 +109,19 @@ terminal / editor.
 cpwd              # copies $(pwd)
 cpwd /etc/nginx   # copies the given path
 ```
+
+### `crp` — copy the absolute path of a file to the clipboard
+
+Resolves a file or folder to its absolute path (via `realpath`, so
+symlinks are resolved) and copies it to the clipboard as plain text.
+Fails if the path does not exist. Spaces in the name are preserved.
+
+```bash
+crp "Report V3.docx"   # copies /home/you/docs/Report V3.docx
+```
+
+> `crp` is different from `c`: `c` copies the *file itself*, `crp` copies
+> its *path* as text.
 
 ### `v` — paste files from the clipboard
 

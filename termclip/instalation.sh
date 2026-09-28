@@ -3,7 +3,7 @@
 #  termclip - Installation Script
 #  Author: Jonathansl17
 #  Description:
-#    Copies termclip clipboard utilities (`c`, `cc`, `cpwd`, `v`)
+#    Copies termclip clipboard utilities (`c`, `cc`, `cpwd`, `crp`, `v`)
 #    into ~/bin. Does NOT touch ~/.bashrc or PATH — make sure
 #    ~/bin is already on your PATH (most distros do this via
 #    ~/.profile / ~/.bash_profile; on Arch, `arch-config/bash/bash_profile`
@@ -133,6 +133,20 @@ echo "Path copied to clipboard:"
 echo "   $target"
 EOF
 
+cat > "$BIN_DIR/crp" <<'EOF'
+#!/usr/bin/env bash
+if [ $# -ne 1 ]; then
+    echo "Usage: crp file"
+    exit 1
+fi
+if ! target=$(realpath -e -- "$1"); then
+    exit 1
+fi
+"$HOME/bin/cpwd.py" "$target" >/dev/null 2>&1 & disown
+echo "Absolute path copied to clipboard:"
+echo "   $target"
+EOF
+
 cat > "$BIN_DIR/v" <<'EOF'
 #!/usr/bin/env bash
 output=$("$HOME/bin/v.py" "$@")
@@ -146,7 +160,7 @@ for f in $output; do
 done
 EOF
 
-chmod u+x "$BIN_DIR/c" "$BIN_DIR/cc" "$BIN_DIR/cpwd" "$BIN_DIR/v"
+chmod u+x "$BIN_DIR/c" "$BIN_DIR/cc" "$BIN_DIR/cpwd" "$BIN_DIR/crp" "$BIN_DIR/v"
 
 echo ""
 echo "termclip installation complete!"
@@ -156,6 +170,7 @@ echo "Commands available:"
 echo "  c file1 file2 ...   → Copy files or folders to clipboard"
 echo "  cc file             → Copy text content of a file to clipboard"
 echo "  cpwd [path]         → Copy current (or given) path to clipboard"
+echo "  crp file            → Copy absolute path of a file to clipboard"
 echo "  v                   → Paste files from clipboard"
 echo ""
 echo "Note: $BIN_DIR must be on your PATH (most shells auto-add this)."
