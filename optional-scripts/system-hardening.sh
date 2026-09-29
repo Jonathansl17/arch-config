@@ -7,8 +7,7 @@
 #   1. /boot fstab fmask=0077,dmask=0077 (vfat ESP permission fix)
 #   2. sysctl hardening (kptr_restrict, ptrace_scope, rp_filter, redirects)
 #   3. GRUB hidden menu (boot directly into Arch; hold Shift at POST for menu)
-#   4. ~/.aws and ~/aws permissions to 700 (if either exists)
-#   5. /mnt/data fstab nofail + 10s device timeout (boot survives dead disk)
+#   4. /mnt/data fstab nofail + 10s device timeout (boot survives dead disk)
 #
 # Run from anywhere:
 #   bash ~/arch-config/optional-scripts/system-hardening.sh
@@ -93,22 +92,7 @@ else
 fi
 
 #-----------------------------------------------------------------
-c_hdr "4. ~/.aws / ~/aws permissions 700"
-#-----------------------------------------------------------------
-applied_any=0
-for d in "$HOME/.aws" "$HOME/aws"; do
-    [[ -d "$d" ]] || continue
-    if [[ "$(stat -c '%a' "$d")" == "700" ]]; then
-        c_skip "$d already 700"
-    else
-        chmod 700 "$d" && c_ok "chmod 700 $d"
-    fi
-    applied_any=1
-done
-[[ $applied_any -eq 0 ]] && c_skip "no aws dir found"
-
-#-----------------------------------------------------------------
-c_hdr "5. /mnt/data fstab nofail + device-timeout"
+c_hdr "4. /mnt/data fstab nofail + device-timeout"
 #-----------------------------------------------------------------
 # Without nofail, a dead /mnt/data disk hangs boot ~90s then drops to
 # emergency shell. With nofail + 10s timeout, boot continues normally
