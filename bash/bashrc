@@ -32,6 +32,7 @@ alias u='sudo pacman -Syu && yay -Syu'
 alias ns='watch -c "sudo env SYSTEMD_COLORS=1 systemctl status NetworkManager"'
 alias feh='feh -F'
 alias cf="claude"
+alias CD='cd'
 
 # Typing the full name gets the ~/bin/x behaviour (detached + template).
 # No recursion: the script calls /usr/bin/xournalpp by absolute path.
