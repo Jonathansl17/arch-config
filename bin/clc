@@ -274,6 +274,19 @@ clean_docker() {
 
 clean_docker
 
+# --- shell history ------------------------------------------------------------
+# Truncated instead of removed so the file keeps its 0600 mode. Shells that are
+# still open append their own session to it on exit (histappend), and this
+# subprocess cannot clear their in-memory history: run `history -c` in them.
+BASH_HISTORY_FILE="$HOME/.bash_history"
+if [ -s "$BASH_HISTORY_FILE" ]; then
+    hsize=$(dsize "$BASH_HISTORY_FILE")
+    if confirm "wipe bash history $BASH_HISTORY_FILE ($(human "$hsize")), cannot be undone?"; then
+        MEASURE_PATHS=("$BASH_HISTORY_FILE")
+        measured "bash history" truncate -s 0 "$BASH_HISTORY_FILE"
+    fi
+fi
+
 # --- report -------------------------------------------------------------------
 echo
 if [ "$DRY_RUN" -eq 1 ]; then
