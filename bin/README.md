@@ -9,12 +9,12 @@ and C sources (compiled at install time).
 |--------|---------|
 | `b`               | Battery status (capacity, charging state, time-to-empty) |
 | `clc`             | Clean every cache (pacman, AUR, pnpm/npm/pip/go, journal, Docker) and report freed space |
-| `e`               | Master PDF Editor launcher (`masterpdfeditor4`, detached) |
 | `fc`              | Fix claude: repins `~/.local/bin/claude` to the newest build that survives a `--version` smoke test (aliased over the `fc` builtin) |
 | `freeoffice-textmaker`, `freeoffice-planmaker`, `freeoffice-presentations` | FreeOffice launchers (detached); shadow the `/usr/bin/` binaries of the same name |
 | `s`               | git stage + auto-generated commit message + push (aborts on secret patterns) |
 | `sqlserver`       | Local SQL Server in Docker: pulls the image, creates the container on first run, asks the SA password every time (never stored). Subcommands: `shell`, `stop`, `restart`, `status`, `logs`, `destroy` |
 | `S`               | git stage + generic `updates` commit + push (aborts on secret patterns) |
+| `ptw`             | PDF to Word: converts each PDF to a `.docx` next to it with `pdf2docx` (only the final extension changes), then opens it with `f` via `setsid -f` |
 | `monitor`         | External display layout: `right-of`, `left-of`, `off`, `status` |
 | `vm`              | Volume + mic status (PipeWire via `wpctl`) |
 | `wifi`            | Interactive WiFi/LAN manager (nmcli wrapper) |

@@ -1,0 +1,35 @@
+#!/bin/bash
+# ptw: PDF to Word. Converts each given PDF to a .docx next to it with
+# pdf2docx (flowing paragraphs FreeOffice renders), then opens it with `f`
+# detached via setsid. Only the final extension changes: "x.docx.pdf" -> "x.docx".
+# Usage: ptw file.pdf [file2.pdf ...]
+CONVERTER=pdf2docx
+OPENER=${PTW_OPENER:-f}
+
+usage() { echo "usage: ptw file.pdf [file2.pdf ...]" >&2; exit 2; }
+
+[ $# -gt 0 ] || usage
+if ! command -v "$CONVERTER" >/dev/null; then
+    echo "ptw: $CONVERTER not found (pipx install pdf2docx)" >&2
+    exit 1
+fi
+
+status=0
+for pdf in "$@"; do
+    case "$pdf" in
+        *.pdf|*.PDF) ;;
+        *) echo "ptw: skip $pdf (not a .pdf)" >&2; status=1; continue ;;
+    esac
+    if [ ! -f "$pdf" ]; then
+        echo "ptw: $pdf not found" >&2; status=1; continue
+    fi
+    base="${pdf%.*}"
+    out="${base%.docx}.docx"
+    if "$CONVERTER" convert "$pdf" "$out" >/dev/null 2>&1 && [ -f "$out" ]; then
+        echo "$out"
+        setsid -f "$OPENER" "$out" >/dev/null 2>&1
+    else
+        echo "ptw: failed $pdf" >&2; status=1
+    fi
+done
+exit $status

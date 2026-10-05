@@ -4,3 +4,4 @@ git-filter-repo
 packet-tracer-mcp
 whisper-ctranslate2
 yt-dlp
+pdf2docx

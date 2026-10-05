@@ -10,6 +10,7 @@ Python CLI tools installed in isolated virtualenvs, via `pipx install`.
 
 - `sherlock-project` — username OSINT across social networks
 - `holehe` — email OSINT (which sites have an account for this email)
+- `pdf2docx` — PDF to editable .docx converter used by `bin/ptw`
 
 ## When to use pipx vs pacman vs pip
 

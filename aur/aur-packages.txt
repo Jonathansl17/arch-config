@@ -18,7 +18,6 @@ freeoffice
 intellij-idea-ultimate-edition
 jmeter
 k6
-masterpdfeditor-free
 ngrok
 obs-backgroundremoval
 packettracer
