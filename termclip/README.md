@@ -55,10 +55,10 @@ When upstream termclip changes, sync manually:
 
 ```sh
 cd ~/termclip && git pull
-cp ~/termclip/{c.py,cc.py,cpwd.py,v.py,termclip_owner.py,instalation.sh,README.md} \
+cp ~/termclip/{c.py,cc.py,cpwd.py,v.py,termclip_owner.py,instalation.sh} \
    ~/arch-config/termclip/
-mv ~/arch-config/termclip/README.md ~/arch-config/termclip/UPSTREAM_README.md
-# (keep this local README.md as-is)
+cp ~/termclip/README.md ~/arch-config/termclip/UPSTREAM_README.md
+# (this local README.md is never overwritten)
 ```
 
 Commit. Re-run `install.sh` to redeploy.
