@@ -107,6 +107,12 @@ if [ $# -lt 1 ]; then
     echo "Usage: c file1 file2 ..."
     exit 1
 fi
+for f in "$@"; do
+    if [ ! -e "$f" ]; then
+        echo "c: no such file or directory: $f" >&2
+        exit 1
+    fi
+done
 "$HOME/bin/c.py" "$@" >/dev/null 2>&1 & disown
 echo "Files copied to clipboard:"
 for f in "$@"; do
@@ -120,6 +126,10 @@ if [ $# -lt 1 ]; then
     echo "Usage: cc file"
     exit 1
 fi
+if [ ! -f "$1" ]; then
+    echo "cc: no such file: $1" >&2
+    exit 1
+fi
 "$HOME/bin/cc.py" "$1" >/dev/null 2>&1 & disown
 echo "Content copied to clipboard from:"
 echo "   $1"
@@ -128,6 +138,10 @@ EOF
 cat > "$BIN_DIR/cpwd" <<'EOF'
 #!/usr/bin/env bash
 target="${1:-$(pwd)}"
+if [ ! -e "$target" ]; then
+    echo "cpwd: no such file or directory: $target" >&2
+    exit 1
+fi
 "$HOME/bin/cpwd.py" "$target" >/dev/null 2>&1 & disown
 echo "Path copied to clipboard:"
 echo "   $target"

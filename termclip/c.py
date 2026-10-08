@@ -23,6 +23,7 @@ uris = []
 # Validate files/folders
 for path in paths:
     if not os.path.exists(path):
+        print(f"No such file or directory: {path}", file=sys.stderr)
         sys.exit(1)
     uris.append(to_file_uri(path))
 
