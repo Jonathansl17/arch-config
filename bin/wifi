@@ -6,6 +6,12 @@ YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=wifi-mac.sh
+source "$SCRIPT_DIR/wifi-mac.sh"
+# shellcheck source=wifi-profile.sh
+source "$SCRIPT_DIR/wifi-profile.sh"
+
 # Detect the WiFi interface dynamically (avoids hardcoding wlp4s0/wlan0/etc).
 WIFI_IFACE=$(nmcli -t -f DEVICE,TYPE device | awk -F: '$2 == "wifi" {print $1; exit}')
 if [[ -z "$WIFI_IFACE" ]]; then
@@ -154,72 +160,15 @@ connect_new() {
     esac
   done
 
-  local rc
-  case "$sec_choice" in
-    1)
-      nmcli device wifi connect "$ssid" ifname "$WIFI_IFACE"
-      rc=$?
-      ;;
-    2)
-      local wifi_pass
-      read_input "Password (q=back): " 1 || return 2
-      wifi_pass="$REPLY"
-      nmcli device wifi connect "$ssid" password "$wifi_pass" ifname "$WIFI_IFACE"
-      rc=$?
-      ;;
-    3)
-      local identity wifi_pass eap phase2 eap_choice
-      read_input "Identity (user, q=back): " || return 2
-      identity="$REPLY"
-      read_input "Password (q=back): " 1 || return 2
-      wifi_pass="$REPLY"
-      while true; do
-        echo ""
-        echo "  1) PEAP + MSCHAPv2 (most common)"
-        echo "  2) TTLS + PAP"
-        echo "  3) TTLS + MSCHAPv2"
-        echo ""
-        read_input "Select EAP method [1/2/3, q=back]: " || return 2
-        eap_choice="$REPLY"
-        case "$eap_choice" in
-          1) eap="peap"; phase2="mschapv2"; break ;;
-          2) eap="ttls"; phase2="pap"; break ;;
-          3) eap="ttls"; phase2="mschapv2"; break ;;
-          *) invalid ;;
-        esac
-      done
-      # Update in place when the profile already exists, so re-running the
-      # script after a failed attempt does not error out on a duplicate name.
-      # password-flags 0 stores the secret in the system store; without it
-      # NetworkManager can fail activation with reason 'no-secrets'.
-      if is_saved_connection "$ssid"; then
-        nmcli connection modify "$ssid" \
-          wifi-sec.key-mgmt wpa-eap \
-          802-1x.eap "$eap" \
-          802-1x.phase2-auth "$phase2" \
-          802-1x.identity "$identity" \
-          802-1x.password "$wifi_pass" \
-          802-1x.password-flags 0
-      else
-        nmcli connection add type wifi con-name "$ssid" ifname "$WIFI_IFACE" ssid "$ssid" \
-          wifi-sec.key-mgmt wpa-eap \
-          802-1x.eap "$eap" \
-          802-1x.phase2-auth "$phase2" \
-          802-1x.identity "$identity" \
-          802-1x.password "$wifi_pass" \
-          802-1x.password-flags 0
-      fi
-      rc=$?
-      if [[ $rc -ne 0 ]]; then
-        echo -e "${RED}Failed to create or update the profile for $ssid.${NC}"
-        return 1
-      fi
-      nmcli connection up "$ssid"
-      rc=$?
-      ;;
-  esac
+  prompt_security_args "$sec_choice" "$security" || return 2
+  choose_mac_mode || return 2
 
-  verify_activation "$ssid" "$rc"
+  if ! add_profile "$ssid" "${SEC_ARGS[@]}" "$MAC_MODE_PROPERTY" "$MAC_MODE"; then
+    echo -e "${RED}Failed to create the profile for $ssid.${NC}"
+    return 1
+  fi
+  nmcli connection up "$ssid"
+  verify_activation "$ssid" $?
 }
 
 reconnect_saved() {
