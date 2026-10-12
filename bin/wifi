@@ -11,6 +11,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/wifi-mac.sh"
 # shellcheck source=wifi-profile.sh
 source "$SCRIPT_DIR/wifi-profile.sh"
+# shellcheck source=wifi-saved.sh
+source "$SCRIPT_DIR/wifi-saved.sh"
 
 # Detect the WiFi interface dynamically (avoids hardcoding wlp4s0/wlan0/etc).
 WIFI_IFACE=$(nmcli -t -f DEVICE,TYPE device | awk -F: '$2 == "wifi" {print $1; exit}')
@@ -172,35 +174,10 @@ connect_new() {
 }
 
 reconnect_saved() {
-  local saved=() re_choice chosen
-  echo ""
-  echo -e "${YELLOW}Saved WiFi connections:${NC}"
-  echo ""
-  mapfile -t saved < <(nmcli -t -f NAME,TYPE connection show | grep ':.*wireless' | cut -d: -f1)
-
-  if [[ ${#saved[@]} -eq 0 ]]; then
-    echo -e "${RED}No saved WiFi connections found.${NC}"
-    return 0
-  fi
-
-  for i in "${!saved[@]}"; do
-    printf "  %d) %s\n" $((i+1)) "${saved[$i]}"
-  done
-  echo ""
-
-  while true; do
-    read_input "Select a connection [1-${#saved[@]}, q=back]: " || return 2
-    re_choice="$REPLY"
-    if [[ "$re_choice" =~ ^[0-9]+$ ]] && (( re_choice >= 1 && re_choice <= ${#saved[@]} )); then
-      break
-    fi
-    invalid
-  done
-
-  chosen="${saved[$((re_choice-1))]}"
-  echo -e "${YELLOW}Connecting to $chosen...${NC}"
-  nmcli connection up "$chosen"
-  verify_activation "$chosen" $?
+  choose_saved_connection "Select a connection" || return $?
+  echo -e "${YELLOW}Connecting to $CHOSEN...${NC}"
+  nmcli connection up "$CHOSEN"
+  verify_activation "$CHOSEN" $?
 }
 
 disconnect_current() {
@@ -220,32 +197,9 @@ disconnect_current() {
 }
 
 delete_saved() {
-  local saved=() del_choice target confirm
-  echo ""
-  echo -e "${YELLOW}Saved WiFi connections:${NC}"
-  echo ""
-  mapfile -t saved < <(nmcli -t -f NAME,TYPE connection show | grep ':.*wireless' | cut -d: -f1)
-
-  if [[ ${#saved[@]} -eq 0 ]]; then
-    echo -e "${RED}No saved WiFi connections found.${NC}"
-    return 0
-  fi
-
-  for i in "${!saved[@]}"; do
-    printf "  %d) %s\n" $((i+1)) "${saved[$i]}"
-  done
-  echo ""
-
-  while true; do
-    read_input "Select a connection to delete [1-${#saved[@]}, q=back]: " || return 2
-    del_choice="$REPLY"
-    if [[ "$del_choice" =~ ^[0-9]+$ ]] && (( del_choice >= 1 && del_choice <= ${#saved[@]} )); then
-      break
-    fi
-    invalid
-  done
-
-  target="${saved[$((del_choice-1))]}"
+  local target confirm
+  choose_saved_connection "Select a connection to delete" || return $?
+  target="$CHOSEN"
   echo ""
   read_input "Are you sure you want to delete '$target'? [y/N, q=back]: " || return 2
   confirm="$REPLY"
@@ -269,13 +223,15 @@ while true; do
   echo "  2) Reconnect to a saved network"
   echo "  3) Disconnect current network"
   echo "  4) Delete a saved connection"
+  echo "  5) Change MAC type of a saved network"
   echo ""
-  read_input "Choose an option [1/2/3/4, q=quit]: " || exit 0
+  read_input "Choose an option [1/2/3/4/5, q=quit]: " || exit 0
   case "$REPLY" in
     1) connect_new ;;
     2) reconnect_saved ;;
     3) disconnect_current ;;
     4) delete_saved ;;
+    5) change_mac_saved ;;
     *) invalid; continue ;;
   esac
   rc=$?

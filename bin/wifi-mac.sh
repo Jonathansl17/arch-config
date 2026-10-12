@@ -25,3 +25,30 @@ choose_mac_mode() {
     esac
   done
 }
+
+# Shown when a profile has no MAC type of its own and follows the global config.
+readonly MAC_MODE_INHERITED_LABEL="global default"
+
+# change_mac_saved
+# Changes the MAC type of a saved profile. Offers to reconnect when it is the
+# active one, since the new MAC only applies on the next activation.
+change_mac_saved() {
+  local current
+  choose_saved_connection "Select a connection to change its MAC type" || return $?
+  current=$(nmcli -g "$MAC_MODE_PROPERTY" connection show "$CHOSEN")
+  echo -e "Current MAC type of $CHOSEN: ${GREEN}${current:-$MAC_MODE_INHERITED_LABEL}${NC}"
+  choose_mac_mode || return 2
+
+  if ! nmcli connection modify "$CHOSEN" "$MAC_MODE_PROPERTY" "$MAC_MODE"; then
+    echo -e "${RED}Failed to change the MAC type of $CHOSEN.${NC}"
+    return 1
+  fi
+  echo -e "${GREEN}MAC type of $CHOSEN set to $MAC_MODE. It applies on the next connection.${NC}"
+  is_active_connection "$CHOSEN" || return 0
+
+  echo -e "${YELLOW}Reconnecting now drops the network for a few seconds.${NC}"
+  read_input "Reconnect now? [y/N, q=back]: " || return 2
+  [[ "$REPLY" == "y" || "$REPLY" == "Y" ]] || return 0
+  nmcli connection up "$CHOSEN"
+  verify_activation "$CHOSEN" $?
+}

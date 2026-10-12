@@ -17,7 +17,7 @@ and C sources (compiled at install time).
 | `ptw`             | PDF to Word: converts each PDF to a `.docx` next to it with `pdf2docx` (only the final extension changes), then opens it with `f` via `setsid -f` |
 | `monitor`         | External display layout: `right-of`, `left-of`, `off`, `status` |
 | `vm`              | Volume + mic status (PipeWire via `wpctl`) |
-| `wifi`            | Interactive WiFi/LAN manager (nmcli wrapper). New networks ask for the MAC type: stable (default), random or real. Helpers sourced from `wifi-mac.sh` and `wifi-profile.sh` |
+| `wifi`            | Interactive WiFi/LAN manager (nmcli wrapper). New networks ask for the MAC type: stable (default), random or real. Option 5 changes the MAC type of a saved network. Helpers sourced from `wifi-mac.sh`, `wifi-profile.sh` and `wifi-saved.sh` |
 | `ws`              | Net status snapshot (LAN + WiFi) |
 | `x`               | Xournal++ launcher (detached; seeds new `.xopp` from `~/templates/template.xopp`) |
 | `xp`, `xpc`       | xournalpp → PDF helpers |
