@@ -297,6 +297,13 @@ say "Installing sysctl configs"
 sudo cp "$REPO_DIR/sysctl/99-swappiness.conf" /etc/sysctl.d/99-swappiness.conf
 sudo sysctl --system >/dev/null 2>&1
 
+# --- 4f-bis. NetworkManager drop-ins (per-network WiFi MAC) ---
+say "Installing NetworkManager configs"
+sudo install -Dm644 "$REPO_DIR/networkmanager/mac-random.conf" /etc/NetworkManager/conf.d/mac-random.conf
+if systemctl is-active --quiet NetworkManager; then
+    sudo nmcli general reload conf
+fi
+
 # --- 4g. ufw firewall (default deny inbound, allow outbound) ---
 say "Configuring ufw"
 if command -v ufw >/dev/null 2>&1; then
