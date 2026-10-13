@@ -60,6 +60,7 @@ the source of truth. Commit or stash anything local before running.
 | [`slock/`](slock/README.md)            | Screen locker (built from source) |
 | [`sysctl/`](sysctl/README.md)          | Kernel parameters |
 | [`networkmanager/`](networkmanager/README.md) | NetworkManager drop-ins (per-network WiFi MAC) |
+| [`modprobe/`](modprobe/README.md)      | Kernel module options (rtw89 WiFi power-save hang) |
 | [`templates/`](templates/README.md)    | xournalpp default template |
 | [`nvidia/`](nvidia/README.md)          | **Optional** NVIDIA driver installer (not run by `install.sh`) |
 | [`optional-scripts/`](optional-scripts/README.md) | **Optional** helpers: hardening, data-disk setup, cache migration |

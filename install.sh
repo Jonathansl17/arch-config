@@ -304,6 +304,11 @@ if systemctl is-active --quiet NetworkManager; then
     sudo nmcli general reload conf
 fi
 
+# --- 4f-ter. Kernel module options (rtw89 WiFi power-save hang) ---
+# Applies on the next module load, i.e. after a full power off.
+say "Installing modprobe configs"
+sudo install -Dm644 "$REPO_DIR/modprobe/rtw89.conf" /etc/modprobe.d/rtw89.conf
+
 # --- 4g. ufw firewall (default deny inbound, allow outbound) ---
 say "Configuring ufw"
 if command -v ufw >/dev/null 2>&1; then
