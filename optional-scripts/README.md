@@ -82,6 +82,38 @@ bash ~/arch-config/optional-scripts/system-hardening.sh
 Backups of any modified system file are left next to the original as
 `<file>.bak-<timestamp>`.
 
+## wifi-suspend-fix.sh
+
+Keeps PCI WiFi cards alive across suspend/resume. Written for the Realtek
+RTL8852BE (rtw89), which can stay dead on resume until a full power off:
+
+```
+rtw89_8852be: Unable to change power state from D3hot to D0, device inaccessible
+rtw89_8852be: mac preinit fail, ret: -110
+Hardware became unavailable upon resume
+```
+
+`modprobe/rtw89.conf` (power-save options) does not cover this case.
+
+Nothing is tied to one model: cards are detected by PCI class `0x0280xx`
+(wireless controller) and their driver is read at runtime. USB dongles are not
+covered. With no PCI WiFi card, the script exits without changes.
+
+Sections:
+- systemd-sleep hook (`system-sleep/wifi-reload` → `/usr/lib/systemd/system-sleep/`):
+  unloads the WiFi driver before suspend and loads it again after resume
+- udev rule (`udev/80-wifi-no-d3cold.rules` → `/etc/udev/rules.d/`):
+  `d3cold_allowed=0` for WiFi cards, applied right away and on every boot
+- removes the older rtw89-only files (`system-sleep/rtw89`,
+  `80-rtw89-no-d3cold.rules`) if present
+
+Idempotent. Takes effect on the next suspend, no reboot needed. If the card
+still hangs, try `wifi-reset` (see `bin/README.md`) before powering off.
+
+```bash
+bash ~/arch-config/optional-scripts/wifi-suspend-fix.sh
+```
+
 ## Revert any single migration
 
 ```bash

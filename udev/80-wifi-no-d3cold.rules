@@ -1,0 +1,4 @@
+# PCI WiFi cards (class 0x0280xx, wireless controller): never let them drop to
+# D3cold. Some (e.g. Realtek RTL8852BE) do not come back from a power loss during
+# suspend until a full power off.
+ACTION=="add", SUBSYSTEM=="pci", ATTR{class}=="0x0280*", ATTR{d3cold_allowed}="0"

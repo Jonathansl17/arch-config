@@ -1,0 +1,78 @@
+#!/bin/bash
+# Last-resort recovery for a hung PCI WiFi card whose interface disappeared.
+# Detects the card by PCI class (0x0280xx, wireless controller), unloads its
+# driver, removes it from the PCI bus, rescans and reloads. If the card still
+# does not come back, the chip is latched and only a full power off clears it.
+
+WIFI_CLASS_PREFIX="0x0280"
+WAIT_SECONDS=10
+LOG_LINES=5
+
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+step() { echo -e "${YELLOW}==>${NC} $*"; }
+fail() { echo -e "${RED}$*${NC}"; exit 1; }
+
+# Prints the sysfs path of the first PCI WiFi card, empty if none is on the bus.
+find_card() {
+  local dev
+  for dev in /sys/bus/pci/devices/*; do
+    if [[ "$(cat "$dev/class")" == "$WIFI_CLASS_PREFIX"* ]]; then
+      echo "$dev"
+      return 0
+    fi
+  done
+}
+
+# Kernel module for a card: the bound driver, or the one its modalias resolves to.
+card_module() {
+  local dev="$1"
+  if [[ -e "$dev/driver/module" ]]; then
+    basename "$(readlink -f "$dev/driver/module")"
+  else
+    modprobe -R "$(cat "$dev/modalias")" 2>/dev/null | head -n 1
+  fi
+}
+
+wifi_iface() {
+  nmcli -t -f DEVICE,TYPE device | awk -F: '$2 == "wifi" {print $1; exit}'
+}
+
+card=$(find_card)
+[[ -n "$card" ]] || fail "No PCI WiFi card on the bus. Power off completely (unplug charger), then boot."
+module=$(card_module "$card")
+[[ -n "$module" ]] || fail "Could not tell which driver ${card##*/} uses."
+echo "Card: $(lspci -s "${card##*/}")"
+echo "Driver: $module"
+
+sudo -v || fail "sudo is required."
+
+step "Unloading $module"
+sudo modprobe -r "$module" || fail "Could not unload $module."
+
+step "Removing ${card##*/} from the PCI bus"
+echo 1 | sudo tee "$card/remove" >/dev/null || fail "PCI remove failed."
+
+step "Rescanning the PCI bus"
+echo 1 | sudo tee /sys/bus/pci/rescan >/dev/null || fail "PCI rescan failed."
+[[ -n "$(find_card)" ]] || fail "Card not found after rescan. Power off completely (unplug charger), then boot."
+
+step "Loading $module"
+sudo modprobe "$module" || fail "Could not load $module."
+
+step "Waiting for the WiFi interface (${WAIT_SECONDS}s max)"
+for ((i = 0; i < WAIT_SECONDS; i++)); do
+  iface=$(wifi_iface)
+  if [[ -n "$iface" ]]; then
+    echo -e "${GREEN}WiFi is back on $iface.${NC}"
+    exit 0
+  fi
+  sleep 1
+done
+
+echo -e "${RED}The card did not come back. Kernel log:${NC}"
+sudo dmesg | /usr/bin/grep -i "$module" | tail -n "$LOG_LINES"
+fail "The chip is latched. Power off completely (unplug charger), then boot."

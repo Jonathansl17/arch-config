@@ -18,6 +18,7 @@ and C sources (compiled at install time).
 | `monitor`         | External display layout: `right-of`, `left-of`, `off`, `status` |
 | `vm`              | Volume + mic status (PipeWire via `wpctl`) |
 | `wifi`            | Interactive WiFi/LAN manager (nmcli wrapper). New networks ask for the MAC type: stable (default), random or real. Option 5 changes the MAC type of a saved network. Helpers sourced from `wifi-mac.sh`, `wifi-profile.sh` and `wifi-saved.sh` |
+| `wifi-reset`      | Recovers a hung PCI WiFi card without rebooting: detects the card and its driver, unloads it, removes the card from the PCI bus, rescans and reloads. Tells you to power off fully if the chip stays latched |
 | `ws`              | Net status snapshot (LAN + WiFi) |
 | `x`               | Xournal++ launcher (detached; seeds new `.xopp` from `~/templates/template.xopp`) |
 | `xp`, `xpc`       | xournalpp → PDF helpers |

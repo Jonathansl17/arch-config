@@ -1,0 +1,50 @@
+#!/bin/sh
+# systemd-sleep hook: unload the driver of every PCI WiFi card before suspend and
+# load it again after resume. Some cards (e.g. Realtek RTL8852BE on rtw89) fail
+# to come back from D3hot on resume and stay dead until a full power off; with
+# the driver unloaded they never go through that transition.
+#
+# Cards are detected at runtime by PCI class (0x0280xx, wireless controller),
+# so nothing here is tied to one machine. Installed to
+# /usr/lib/systemd/system-sleep/ by optional-scripts/wifi-suspend-fix.sh.
+# Args: $1 = pre|post, $2 = sleep type.
+
+WIFI_CLASS_PREFIX=0x0280
+STATE_FILE=/run/wifi-reload.modules
+TAG=wifi-reload
+
+# Prints the kernel module bound to each PCI WiFi card, one per line.
+bound_wifi_modules() {
+    for dev in /sys/bus/pci/devices/*; do
+        case "$(cat "$dev/class")" in
+            "$WIFI_CLASS_PREFIX"*) ;;
+            *) continue ;;
+        esac
+        [ -e "$dev/driver/module" ] || continue
+        basename "$(readlink -f "$dev/driver/module")"
+    done
+}
+
+status=0
+case "$1" in
+    pre)
+        bound_wifi_modules > "$STATE_FILE"
+        while read -r module; do
+            if ! modprobe -r "$module"; then
+                logger -t "$TAG" "failed to unload $module before $2"
+                status=1
+            fi
+        done < "$STATE_FILE"
+        ;;
+    post)
+        [ -f "$STATE_FILE" ] || exit 0
+        while read -r module; do
+            if ! modprobe "$module"; then
+                logger -t "$TAG" "failed to load $module after $2"
+                status=1
+            fi
+        done < "$STATE_FILE"
+        rm -f "$STATE_FILE"
+        ;;
+esac
+exit "$status"
