@@ -107,7 +107,14 @@ Sections:
 - removes the older rtw89-only files (`system-sleep/rtw89`,
   `80-rtw89-no-d3cold.rules`) if present
 
-Idempotent. Takes effect on the next suspend, no reboot needed. If the card
+If the fix is already installed, the script asks before touching anything:
+
+- `y` — reinstall: overwrites both files with the repo version
+- `n` — uninstall: removes both files (plus the old rtw89 ones) and restores
+  `d3cold_allowed=1` right away
+- anything else — cancel, nothing changes
+
+Takes effect on the next suspend, no reboot needed. If the card
 still hangs, try `wifi-reset` (see `bin/README.md`) before powering off.
 
 ```bash
