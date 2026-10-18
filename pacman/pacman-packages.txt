@@ -143,6 +143,7 @@ zoxide
 fzf
 rsync
 pandoc-cli
+zbar
 
 # --- Power / hardware monitoring ---
 power-profiles-daemon
