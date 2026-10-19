@@ -90,10 +90,14 @@ alias burpsuite="setsid -f burpsuite >/dev/null 2>&1"
 ANSI_EXIT_ALT_SCREEN=$'\e[?1049l'
 _exit_alt_screen() { printf '%s' "$ANSI_EXIT_ALT_SCREEN"; }
 # Guarda de idempotencia: `source ~/.bashrc` no debe duplicar el hook.
-case ";$PROMPT_COMMAND;" in
-    *";_exit_alt_screen;"*) ;;
-    *) PROMPT_COMMAND="_exit_alt_screen${PROMPT_COMMAND:+; $PROMPT_COMMAND}" ;;
-esac
+# Skipped in VS Code: xterm.js applies the cursor restore of ?1049l even on the
+# main screen, so the new prompt is drawn over the previous one.
+if [[ $TERM_PROGRAM != vscode ]]; then
+    case ";$PROMPT_COMMAND;" in
+        *";_exit_alt_screen;"*) ;;
+        *) PROMPT_COMMAND="_exit_alt_screen${PROMPT_COMMAND:+; $PROMPT_COMMAND}" ;;
+    esac
+fi
 # === end alt screen guard ===
 
 # === claude resume guard ===
