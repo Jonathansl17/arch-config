@@ -184,7 +184,7 @@ else
 fi
 
 # --- loose cache directories that regenerate on demand ------------------------
-for d in thumbnails vscode-cpptools Cypress puccinialin; do
+for d in thumbnails vscode-cpptools puccinialin; do
     target="$CACHE_HOME/$d"
     [ -d "$target" ] || continue
     size=$(dsize "$target")
