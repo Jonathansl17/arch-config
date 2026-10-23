@@ -13,6 +13,8 @@ source "$SCRIPT_DIR/wifi-mac.sh"
 source "$SCRIPT_DIR/wifi-profile.sh"
 # shellcheck source=wifi-saved.sh
 source "$SCRIPT_DIR/wifi-saved.sh"
+# shellcheck source=wifi-edit.sh
+source "$SCRIPT_DIR/wifi-edit.sh"
 
 # Detect the WiFi interface dynamically (avoids hardcoding wlp4s0/wlan0/etc).
 WIFI_IFACE=$(nmcli -t -f DEVICE,TYPE device | awk -F: '$2 == "wifi" {print $1; exit}')
@@ -224,14 +226,16 @@ while true; do
   echo "  3) Disconnect current network"
   echo "  4) Delete a saved connection"
   echo "  5) Change MAC type of a saved network"
+  echo "  6) Edit a saved network (password, user, autoconnect)"
   echo ""
-  read_input "Choose an option [1/2/3/4/5, q=quit]: " || exit 0
+  read_input "Choose an option [1/2/3/4/5/6, q=quit]: " || exit 0
   case "$REPLY" in
     1) connect_new ;;
     2) reconnect_saved ;;
     3) disconnect_current ;;
     4) delete_saved ;;
     5) change_mac_saved ;;
+    6) edit_saved ;;
     *) invalid; continue ;;
   esac
   rc=$?

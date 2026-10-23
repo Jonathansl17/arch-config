@@ -44,11 +44,5 @@ change_mac_saved() {
     return 1
   fi
   echo -e "${GREEN}MAC type of $CHOSEN set to $MAC_MODE. It applies on the next connection.${NC}"
-  is_active_connection "$CHOSEN" || return 0
-
-  echo -e "${YELLOW}Reconnecting now drops the network for a few seconds.${NC}"
-  read_input "Reconnect now? [y/N, q=back]: " || return 2
-  [[ "$REPLY" == "y" || "$REPLY" == "Y" ]] || return 0
-  nmcli connection up "$CHOSEN"
-  verify_activation "$CHOSEN" $?
+  offer_reconnect "$CHOSEN"
 }

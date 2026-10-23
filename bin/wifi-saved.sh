@@ -31,3 +31,15 @@ choose_saved_connection() {
     invalid
   done
 }
+
+# offer_reconnect <connection>
+# Profile changes only apply on the next activation, so offer to reconnect
+# when the edited profile is the active one.
+offer_reconnect() {
+  is_active_connection "$1" || return 0
+  echo -e "${YELLOW}Reconnecting now drops the network for a few seconds.${NC}"
+  read_input "Reconnect now? [y/N, q=back]: " || return 2
+  [[ "$REPLY" == "y" || "$REPLY" == "Y" ]] || return 0
+  nmcli connection up "$1"
+  verify_activation "$1" $?
+}
