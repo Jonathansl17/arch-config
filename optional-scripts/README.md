@@ -121,6 +121,27 @@ still hangs, try `wifi-reset` (see `bin/README.md`) before powering off.
 bash ~/arch-config/optional-scripts/wifi-suspend-fix.sh
 ```
 
+## wifi-off-when-wired.sh
+
+Turns the WiFi radio off while a cable is connected and back on when it is not,
+so the card stays idle (no scans, no second connection) on wired days.
+
+Installs `networkmanager/dispatcher.d/70-wifi-off-when-wired` →
+`/etc/NetworkManager/dispatcher.d/` and runs it once so it applies right away.
+The script re-checks the real state on every NetworkManager event, so it also
+works when booting without the cable after a wired shutdown. Details in
+`networkmanager/README.md`.
+
+If already installed, the script asks before touching anything:
+
+- `y` — reinstall: overwrites it with the repo version
+- `n` — uninstall: removes it and turns the WiFi radio back on
+- anything else — cancel, nothing changes
+
+```bash
+bash ~/arch-config/optional-scripts/wifi-off-when-wired.sh
+```
+
 ## Revert any single migration
 
 ```bash

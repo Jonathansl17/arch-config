@@ -1,12 +1,15 @@
 # networkmanager
 
 NetworkManager drop-ins copied into `/etc/NetworkManager/conf.d/` by `install.sh`.
+`dispatcher.d/` is **optional**: installed only by
+`optional-scripts/wifi-off-when-wired.sh`.
 
 ## Files
 
 | File | Purpose |
 |------|---------|
 | `mac-random.conf` | Per-network WiFi MAC address instead of the hardware one |
+| `dispatcher.d/70-wifi-off-when-wired` | WiFi radio off while a cable is connected, on otherwise |
 
 ## mac-random.conf
 
@@ -25,6 +28,24 @@ To keep the hardware MAC on one network (e.g. one that filters by registered MAC
 ```sh
 nmcli connection modify "<name>" 802-11-wireless.cloned-mac-address permanent
 ```
+
+## dispatcher.d/70-wifi-off-when-wired
+
+Runs on every NetworkManager event. If any ethernet device is `connected`, it runs
+`nmcli radio wifi off`; otherwise `nmcli radio wifi on`. No-op when the radio is
+already in the wanted state. Each change (or failure) is logged:
+
+```sh
+journalctl -t wifi-off-when-wired
+```
+
+Checking the real state on every event (not only ethernet up/down) covers booting
+without the cable after a wired shutdown, where NetworkManager restores the radio
+as off and no ethernet event ever fires.
+
+To use WiFi while wired, unplug the cable: a manual `nmcli radio wifi on` lasts
+only until the next network event. Install or uninstall with
+`bash ~/arch-config/optional-scripts/wifi-off-when-wired.sh`.
 
 ## Activating without dropping the connection
 

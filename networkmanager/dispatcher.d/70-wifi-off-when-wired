@@ -1,0 +1,30 @@
+#!/bin/sh
+# NetworkManager dispatcher script: turn the WiFi radio off while any wired
+# (ethernet) device is connected, and back on when none is.
+#
+# It re-checks the real state on every dispatcher event instead of reacting
+# only to ethernet up/down, so booting without the cable after a wired
+# shutdown (radio saved as off) still brings WiFi back.
+#
+# Installed to /etc/NetworkManager/dispatcher.d/ by install.sh (4f-bis).
+# Override for one session: unplug the cable; a manual `nmcli radio wifi on`
+# lasts only until the next network event.
+
+TAG=wifi-off-when-wired
+WIRED_CONNECTED='ethernet:connected'
+
+if nmcli -t -f TYPE,STATE device | grep -q "^$WIRED_CONNECTED"; then
+    wanted=disabled
+    action=off
+else
+    wanted=enabled
+    action=on
+fi
+
+[ "$(nmcli radio wifi)" = "$wanted" ] && exit 0
+
+if ! nmcli radio wifi "$action"; then
+    logger -t "$TAG" "failed to turn WiFi $action (event: ${2:-manual} on ${1:-none})"
+    exit 1
+fi
+logger -t "$TAG" "WiFi turned $action (event: ${2:-manual} on ${1:-none})"
