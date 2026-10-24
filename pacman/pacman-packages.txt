@@ -123,6 +123,7 @@ android-tools
 graphviz
 llvm
 utf8cpp
+cloc
 
 # --- Shell / CLI utilities ---
 bash-completion
