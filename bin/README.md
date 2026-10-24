@@ -8,6 +8,7 @@ and C sources (compiled at install time).
 | Script | Purpose |
 |--------|---------|
 | `b`               | Battery status (capacity, charging state, time-to-empty) |
+| `cloc`            | Shadows `/usr/bin/cloc`: skips dependency/VCS/cache/build dirs of every common ecosystem plus lockfiles and minified files, and reports test code (`*.test.*`, `*.spec.*`, `test_*.py`, `*_test.go`, `*Test.java`, `tests/`, `e2e/`…) as separate `(tests)` rows. Any `-option` falls back to a single exclusion-only pass; `command cloc` for the raw tool |
 | `clc`             | Clean every cache (pacman, AUR, pnpm/npm/pip/go, journal, Docker) and report freed space |
 | `fc`              | Fix claude: repins `~/.local/bin/claude` to the newest build that survives a `--version` smoke test (aliased over the `fc` builtin) |
 | `freeoffice-textmaker`, `freeoffice-planmaker`, `freeoffice-presentations` | FreeOffice launchers (detached); shadow the `/usr/bin/` binaries of the same name |
