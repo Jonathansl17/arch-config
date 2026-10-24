@@ -34,6 +34,9 @@ alias feh='feh -F'
 alias cf="claude"
 alias CD='cd'
 
+# cloc skips dependency, VCS, build and test-output dirs by default.
+alias cloc='cloc --exclude-dir=node_modules,.git,.next,dist,build,out,coverage,playwright-report,test-results,.turbo,.cache,.venv,venv,__pycache__,target,vendor'
+
 # Typing the full name gets the ~/bin/x behaviour (detached + template).
 # No recursion: the script calls /usr/bin/xournalpp by absolute path.
 alias xournalpp='x'
