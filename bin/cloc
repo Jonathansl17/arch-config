@@ -51,14 +51,17 @@ count_pass_with_progress() {
 
 # Prints "category language files blank comment code" rows from a cloc CSV,
 # skipping header and SUM rows. Doc and data languages override the pass
-# category, so a README inside tests/ counts as docs, not as tests.
+# category, so a README inside tests/ counts as docs, not as tests. Languages
+# in LANG_RENAMES are shown under their new name.
 csv_rows() {
     local csv=$1 category=$2
     awk -F, -v category="$category" -v docs="$DOC_LANGS" -v data="$DATA_LANGS" \
-        -v doc_cat="$CATEGORY_DOCS" -v data_cat="$CATEGORY_DATA" '
+        -v doc_cat="$CATEGORY_DOCS" -v data_cat="$CATEGORY_DATA" -v renames="$LANG_RENAMES" '
         BEGIN { split(docs, d, "|"); for (i in d) is_doc[d[i]] = 1
-                split(data, k, "|"); for (i in k) is_data[k[i]] = 1 }
+                split(data, k, "|"); for (i in k) is_data[k[i]] = 1
+                split(renames, r, "|"); for (i in r) { split(r[i], p, "="); rename[p[1]] = p[2] } }
         $1 ~ /^[0-9]+$/ && $2 != "SUM" {
+            if ($2 in rename) $2 = rename[$2]
             c = category
             if ($2 in is_doc) c = doc_cat
             else if ($2 in is_data) c = data_cat

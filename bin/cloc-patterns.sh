@@ -10,6 +10,8 @@ CATEGORY_DOCS=3
 CATEGORY_DATA=4
 CATEGORY_LABELS='Code|Tests|Docs|Config & data'
 DOC_LANGS='Markdown|reStructuredText|AsciiDoc|Org Mode|Text|TeX'
+# Display names that replace cloc's own, as cloc=shown pairs.
+LANG_RENAMES='Bourne Shell=Bash|Bourne Again Shell=Bash'
 DATA_LANGS='JSON|JSON5|YAML|TOML|INI|XML|XSD|DTD|CSV|Properties|SVG'
 
 EXCLUDE_DIRS=(
