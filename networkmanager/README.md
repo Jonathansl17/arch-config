@@ -31,9 +31,11 @@ nmcli connection modify "<name>" 802-11-wireless.cloned-mac-address permanent
 
 ## dispatcher.d/70-wifi-off-when-wired
 
-Runs on every NetworkManager event. If any ethernet device is `connected`, it runs
-`nmcli radio wifi off`; otherwise `nmcli radio wifi on`. No-op when the radio is
-already in the wanted state. Each change (or failure) is logged:
+Runs on every NetworkManager event. If any physical ethernet device has link
+carrier (cable plugged in, read from `/sys/class/net/*/carrier`), it runs
+`nmcli radio wifi off`. Otherwise it re-checks carrier once a second for up to
+10 s and, if no cable shows up, runs `nmcli radio wifi on`. No-op when the radio
+is already in the wanted state. Each change (or failure) is logged:
 
 ```sh
 journalctl -t wifi-off-when-wired
@@ -42,6 +44,11 @@ journalctl -t wifi-off-when-wired
 Checking the real state on every event (not only ethernet up/down) covers booting
 without the cable after a wired shutdown, where NetworkManager restores the radio
 as off and no ethernet event ever fires.
+
+Carrier is used instead of the NetworkManager `connected` state because at boot
+the wired device stays in `connecting` while DHCP runs (30+ s here), which used
+to turn the radio on until the lease arrived. The grace period covers the few
+seconds the link takes to negotiate.
 
 To use WiFi while wired, unplug the cable: a manual `nmcli radio wifi on` lasts
 only until the next network event. Install or uninstall with

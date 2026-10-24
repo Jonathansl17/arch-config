@@ -1,30 +1,65 @@
 #!/bin/sh
-# NetworkManager dispatcher script: turn the WiFi radio off while any wired
-# (ethernet) device is connected, and back on when none is.
+# NetworkManager dispatcher script: turn the WiFi radio off while a cable is
+# plugged into any wired (ethernet) device, and back on when none is.
+#
+# "Plugged" means link carrier, not an NM "connected" state: at boot the wired
+# device sits in "connecting" while DHCP runs, and treating that as unplugged
+# turned the radio on for half a minute. Before turning the radio on, carrier
+# is re-checked for a short grace period so a link that is still negotiating
+# is not mistaken for a missing cable.
 #
 # It re-checks the real state on every dispatcher event instead of reacting
 # only to ethernet up/down, so booting without the cable after a wired
 # shutdown (radio saved as off) still brings WiFi back.
 #
-# Installed to /etc/NetworkManager/dispatcher.d/ by install.sh (4f-bis).
+# Installed to /etc/NetworkManager/dispatcher.d/ by
+# optional-scripts/wifi-off-when-wired.sh.
 # Override for one session: unplug the cable; a manual `nmcli radio wifi on`
 # lasts only until the next network event.
 
 TAG=wifi-off-when-wired
-WIRED_CONNECTED='ethernet:connected'
+NET_SYSFS=${NET_SYSFS:-/sys/class/net}
+ARPHRD_ETHER=1
+CARRIER_GRACE_SECONDS=10
 
-if nmcli -t -f TYPE,STATE device | grep -q "^$WIRED_CONNECTED"; then
-    wanted=disabled
-    action=off
-else
-    wanted=enabled
-    action=on
+# True when a physical, non-wireless ethernet device reports link carrier.
+wired_carrier() {
+    for dev in "$NET_SYSFS"/*; do
+        [ -e "$dev/device" ] || continue
+        [ -d "$dev/wireless" ] && continue
+        [ "$(cat "$dev/type" 2>/dev/null)" = "$ARPHRD_ETHER" ] || continue
+        # carrier is unreadable while the device is administratively down.
+        [ "$(cat "$dev/carrier" 2>/dev/null)" = 1 ] && return 0
+    done
+    return 1
+}
+
+# True if carrier shows up within the grace period.
+wired_carrier_soon() {
+    waited=0
+    while [ "$waited" -lt "$CARRIER_GRACE_SECONDS" ]; do
+        sleep 1
+        waited=$((waited + 1))
+        wired_carrier && return 0
+    done
+    return 1
+}
+
+set_radio() {
+    if ! nmcli radio wifi "$1"; then
+        logger -t "$TAG" "failed to turn WiFi $1 (event: ${3:-manual} on ${2:-none})"
+        exit 1
+    fi
+    logger -t "$TAG" "WiFi turned $1 (event: ${3:-manual} on ${2:-none})"
+}
+
+radio=$(nmcli radio wifi)
+
+if wired_carrier; then
+    [ "$radio" = disabled ] || set_radio off "$1" "$2"
+    exit 0
 fi
 
-[ "$(nmcli radio wifi)" = "$wanted" ] && exit 0
-
-if ! nmcli radio wifi "$action"; then
-    logger -t "$TAG" "failed to turn WiFi $action (event: ${2:-manual} on ${1:-none})"
-    exit 1
-fi
-logger -t "$TAG" "WiFi turned $action (event: ${2:-manual} on ${1:-none})"
+[ "$radio" = enabled ] && exit 0
+wired_carrier_soon && exit 0
+set_radio on "$1" "$2"
