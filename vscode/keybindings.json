@@ -138,11 +138,11 @@
     "when": "editorTextFocus && !editorReadonly"
   },
   {
-    "key": "alt+d",
+    "key": "alt+right",
     "command": "workbench.action.nextEditor"
   },
   {
-    "key": "alt+s",
+    "key": "alt+left",
     "command": "workbench.action.previousEditor"
   },
   {
@@ -355,7 +355,7 @@
     "when": "searchViewletFocus"
 },
 {
-    "key": "ctrl+j",
+    "key": "alt+j",
     "command": "workbench.action.closeAuxiliaryBar"
 }
 ]

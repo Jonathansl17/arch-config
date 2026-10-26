@@ -25,7 +25,7 @@ primary one (works regardless of editor/nvim focus).
 | `alt+e`       | Show explorer                       |
 | `alt+r`       | Show explorer / toggle sidebar      |
 | `alt+f`       | Find in files                       |
-| `alt+d` / `alt+s` | Next / previous editor          |
+| `alt+right` / `alt+left` | Next / previous editor |
 | `alt+q`       | Close active editor                 |
 | `alt+m`       | Toggle panel                        |
 | `alt+[`       | Toggle auxiliary (right) bar        |
