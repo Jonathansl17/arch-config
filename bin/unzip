@@ -1,8 +1,9 @@
 #!/bin/bash
 # unzip wrapper. Archives built on Windows or downloaded from Kaggle carry 777
 # perms, which ls paints with the "other-writable" warning colour. Extract with
-# the real unzip, then normalise only the entries this archive created:
-# 755 for directories, 644 for files.
+# the real unzip, then normalise only the entries this archive created that are
+# other-writable: 755 for directories, 644 for files. Every other entry keeps
+# its archived mode, so executables such as Maven's bin/mvn stay runnable.
 # No recursion: the real binary is called by absolute path.
 UNZIP_BIN=/usr/bin/unzip
 
@@ -24,6 +25,11 @@ done
 # -Z1 lists the archive's entries, one per line, without extracting anything.
 "$UNZIP_BIN" -Z1 "$archive" 2>/dev/null | while IFS= read -r entry; do
     path="$dest/$entry"
+    [ -e "$path" ] && [ ! -L "$path" ] || continue
+    case "$(stat -c %a "$path")" in
+        *[2367]) ;;
+        *) continue ;;
+    esac
     [ -d "$path" ] && chmod 755 "$path"
     [ -f "$path" ] && chmod 644 "$path"
 done
