@@ -14,6 +14,7 @@ stty susp ^C
 alias pgadmin4="setsid -f /usr/pgadmin4/bin/pgadmin4 >/dev/null 2>&1"
 alias postman="setsid -f postman >/dev/null 2>&1"
 alias idea="setsid -f idea >/dev/null 2>&1"
+alias intelij="setsid -f intellij-idea-ultimate-edition >/dev/null 2>&1"
 alias code="setsid -f code >/dev/null 2>&1"
 alias brave="setsid -f brave >/dev/null 2>&1"
 alias pcmanfm="setsid -f pcmanfm >/dev/null 2>&1"
