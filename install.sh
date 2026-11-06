@@ -27,8 +27,8 @@ MAPPINGS=(
     "templates/template.xopp  $HOME/templates/template.xopp"
     "nvim/init.lua            $HOME/.config/nvim/init.lua"
     "nvim/ideavimrc           $HOME/.ideavimrc"
-    "nvim/intellij-keymap.xml         $HOME/.config/JetBrains/IntelliJIdea2026.1/keymaps/XWin copy.xml"
-    "nvim/intellij-ide.general.xml    $HOME/.config/JetBrains/IntelliJIdea2026.1/options/ide.general.xml"
+    "nvim/intellij-keymap.xml         $HOME/.config/JetBrains/IntelliJIdea2026.3/keymaps/XWin copy.xml"
+    "nvim/intellij-ide.general.xml    $HOME/.config/JetBrains/IntelliJIdea2026.3/options/ide.general.xml"
     "vscode/keybindings.json  $HOME/.config/Code/User/keybindings.json"
     "vscode/settings.json     $HOME/.config/Code/User/settings.json"
 )
