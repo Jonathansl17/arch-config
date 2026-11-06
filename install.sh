@@ -16,6 +16,9 @@ say()  { printf '\033[1;36m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m!!\033[0m %s\n' "$*"; }
 die()  { printf '\033[1;31m!!\033[0m %s\n' "$*" >&2; exit 1; }
 
+INTELLIJ_PRODUCT_INFO=/opt/intellij-idea-ultimate-edition/product-info.json
+JETBRAINS_CONFIG_ROOT="$HOME/.config/JetBrains"
+
 # repo_relative_source  absolute_destination
 MAPPINGS=(
     "bspwm/bspwmrc            $HOME/.config/bspwm/bspwmrc"
@@ -27,8 +30,6 @@ MAPPINGS=(
     "templates/template.xopp  $HOME/templates/template.xopp"
     "nvim/init.lua            $HOME/.config/nvim/init.lua"
     "nvim/ideavimrc           $HOME/.ideavimrc"
-    "nvim/intellij-keymap.xml         $HOME/.config/JetBrains/IntelliJIdea2026.3/keymaps/XWin copy.xml"
-    "nvim/intellij-ide.general.xml    $HOME/.config/JetBrains/IntelliJIdea2026.3/options/ide.general.xml"
     "vscode/keybindings.json  $HOME/.config/Code/User/keybindings.json"
     "vscode/settings.json     $HOME/.config/Code/User/settings.json"
 )
@@ -72,6 +73,26 @@ install_file() {
 
     cp -f "$src" "$dst"
     say "installed: $dst"
+}
+
+intellij_config_dir() {
+    # Prints the installed IDE's config dir, read from its own metadata so the
+    # path follows version upgrades. Fails when IntelliJ is not installed.
+    local name
+    [[ -f "$INTELLIJ_PRODUCT_INFO" ]] || return 1
+    name=$(sed -n '/"dataDirectoryName"/{s/.*: *"\(.*\)".*/\1/p;q}' "$INTELLIJ_PRODUCT_INFO")
+    [[ -n "$name" ]] || return 1
+    printf '%s\n' "$JETBRAINS_CONFIG_ROOT/$name"
+}
+
+install_intellij_configs() {
+    local dir
+    if ! dir=$(intellij_config_dir); then
+        warn "IntelliJ config dir not detected, skipping its configs"
+        return
+    fi
+    install_file "nvim/intellij-keymap.xml" "$dir/keymaps/XWin copy.xml"
+    install_file "nvim/intellij-ide.general.xml" "$dir/options/ide.general.xml"
 }
 
 # --- 0. Minimum prerequisites (git to clone AUR, base-devel for makepkg) ---
@@ -157,6 +178,8 @@ for entry in "${MAPPINGS[@]}"; do
     read -r src dst <<< "$entry"
     install_file "$src" "$dst"
 done
+# Runs here, not in MAPPINGS: the AUR step above is what installs the IDE.
+install_intellij_configs
 
 # bspwm rc and every deployed bin/ script must be executable
 chmod +x "$HOME/.config/bspwm/bspwmrc" 2>/dev/null || true
