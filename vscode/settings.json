@@ -7,7 +7,7 @@
         "markdown": false,
         "scminput": false,
         "typescriptreact": false,
-        "javascript": true,
+        "javascript": false,
         "python": false,
         "cpp": false,
         "perl": false,

@@ -112,6 +112,7 @@ jdk-openjdk
 maven
 nodejs
 npm
+deno
 postgresql
 dbeaver
 python-pyqt5
@@ -153,6 +154,7 @@ smartmontools
 # --- Network / security tooling ---
 nmap
 openbsd-netcat
+tcpdump
 wireshark-qt
 
 # --- Typesetting (TeX Live + typst) ---
