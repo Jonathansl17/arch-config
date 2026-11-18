@@ -2,6 +2,58 @@
 # saves it in NetworkManager for the `wifi` command.
 # Sourced by `wifi`; not meant to be executed directly.
 
+readonly SEC_OPEN=1
+readonly SEC_PERSONAL=2
+readonly SEC_ENTERPRISE=3
+readonly NMCLI_EMPTY_FIELD="--"
+declare -rA SEC_LABELS=(
+  [$SEC_OPEN]="Open (no password)"
+  [$SEC_PERSONAL]="WPA/WPA2 Personal (password only)"
+  [$SEC_ENTERPRISE]="WPA2 Enterprise (user + password)"
+)
+
+# detect_security_choice <scan-security>
+# Prints the security type inferred from nmcli's SECURITY scan field.
+# Returns 1 when the value is not recognised (WEP, OWE, ...), so the caller
+# can fall back to asking the user.
+detect_security_choice() {
+  local sec="$1"
+  if [[ -z "$sec" || "$sec" == "$NMCLI_EMPTY_FIELD" ]]; then
+    echo "$SEC_OPEN"
+  elif [[ "$sec" == *802.1X* ]]; then
+    echo "$SEC_ENTERPRISE"
+  elif [[ "$sec" =~ (^|[[:space:]])WPA[123]($|[[:space:]]) ]]; then
+    echo "$SEC_PERSONAL"
+  else
+    return 1
+  fi
+}
+
+# choose_security_type <scan-security>
+# SEC_CHOICE=detected security type, or the user's pick when detection fails.
+# Returns 2 if user typed q.
+choose_security_type() {
+  local choice
+  if SEC_CHOICE=$(detect_security_choice "$1"); then
+    echo -e "Detected security: ${GREEN}${SEC_LABELS[$SEC_CHOICE]}${NC}"
+    return 0
+  fi
+  echo -e "${YELLOW}Unrecognised security type '$1'. Choose it manually.${NC}"
+  while true; do
+    echo ""
+    for choice in "$SEC_OPEN" "$SEC_PERSONAL" "$SEC_ENTERPRISE"; do
+      echo "  $choice) ${SEC_LABELS[$choice]}"
+    done
+    echo ""
+    read_input "Select security type [1/2/3, q=back]: " || return 2
+    if [[ -n "${SEC_LABELS[$REPLY]+set}" ]]; then
+      SEC_CHOICE="$REPLY"
+      return 0
+    fi
+    invalid
+  done
+}
+
 # personal_key_mgmt <scan-security>
 # WPA3-only networks require SAE. Anything still advertising WPA1/WPA2,
 # including WPA2/WPA3 transition networks, accepts a PSK.
@@ -39,11 +91,11 @@ prompt_security_args() {
   local identity password
   SEC_ARGS=()
   case "$1" in
-    2)
+    "$SEC_PERSONAL")
       read_input "Password (q=back): " 1 || return 2
       SEC_ARGS=(wifi-sec.key-mgmt "$(personal_key_mgmt "$2")" wifi-sec.psk "$REPLY")
       ;;
-    3)
+    "$SEC_ENTERPRISE")
       read_input "Identity (user, q=back): " || return 2
       identity="$REPLY"
       read_input "Password (q=back): " 1 || return 2

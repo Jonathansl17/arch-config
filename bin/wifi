@@ -103,7 +103,7 @@ verify_activation() {
 }
 
 connect_new() {
-  local networks=() ssid signal security net_choice sec_choice
+  local networks=() ssid signal security net_choice
   while true; do
     echo ""
     echo -e "${YELLOW}Scanning available networks...${NC}"
@@ -150,21 +150,9 @@ connect_new() {
     return 0
   fi
 
-  while true; do
-    echo ""
-    echo "  1) Open (no password)"
-    echo "  2) WPA/WPA2 Personal (password only)"
-    echo "  3) WPA2 Enterprise (user + password)"
-    echo ""
-    read_input "Select security type [1/2/3, q=back]: " || return 2
-    sec_choice="$REPLY"
-    case "$sec_choice" in
-      1|2|3) break ;;
-      *) invalid ;;
-    esac
-  done
+  choose_security_type "$security" || return 2
 
-  prompt_security_args "$sec_choice" "$security" || return 2
+  prompt_security_args "$SEC_CHOICE" "$security" || return 2
   choose_mac_mode || return 2
 
   if ! add_profile "$ssid" "${SEC_ARGS[@]}" "$MAC_MODE_PROPERTY" "$MAC_MODE"; then
