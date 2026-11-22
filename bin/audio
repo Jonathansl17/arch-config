@@ -1,0 +1,46 @@
+#!/bin/bash
+# Switch the default audio output between the TV (HDMI) and the laptop (analog).
+set -euo pipefail
+
+readonly HDMI_PATTERN='hdmi'
+readonly LAPTOP_PATTERN='analog'
+readonly MSG_USAGE="Usage: audio [-t | -c]
+  -t   send audio to the TV (HDMI)
+  -c   send audio to the computer (speakers / headphones)
+  no flag shows the current output"
+
+die() {
+  echo "audio: $*" >&2
+  exit 1
+}
+
+# find_sink PATTERN -> prints the first sink name matching PATTERN.
+find_sink() {
+  local sink
+  sink=$(pactl list short sinks | awk -v p="$1" '$2 ~ p {print $2; exit}')
+  [[ -n "$sink" ]] || die "no output matching '$1' found (is it connected?)"
+  echo "$sink"
+}
+
+# switch_to SINK -> makes SINK the default and moves every playing stream to it.
+switch_to() {
+  local sink="$1" input
+  pactl set-default-sink "$sink" || die "could not set default sink to $sink"
+  for input in $(pactl list short sink-inputs | cut -f1); do
+    pactl move-sink-input "$input" "$sink" || die "could not move stream $input"
+  done
+  echo "Audio -> $sink"
+}
+
+main() {
+  command -v pactl >/dev/null || die "pactl not found"
+  case "${1:-}" in
+    -t) switch_to "$(find_sink "$HDMI_PATTERN")" ;;
+    -c) switch_to "$(find_sink "$LAPTOP_PATTERN")" ;;
+    "") echo "Current: $(pactl get-default-sink)" ;;
+    -h|--help) echo "$MSG_USAGE" ;;
+    *) echo "$MSG_USAGE" >&2; exit 1 ;;
+  esac
+}
+
+main "$@"

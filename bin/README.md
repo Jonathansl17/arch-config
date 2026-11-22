@@ -7,6 +7,7 @@ and C sources (compiled at install time).
 
 | Script | Purpose |
 |--------|---------|
+| `audio`           | Switch audio output: `-t` TV (HDMI), `-c` computer (speakers/headphones), no flag shows current. Moves playing streams too (PipeWire via `pactl`) |
 | `b`               | Battery status (capacity, charging state, time-to-empty) |
 | `cloc`            | Shadows `/usr/bin/cloc` and splits the table into Code, Tests, Docs and Config & data. Skips dependency/VCS/cache/build dirs of every common ecosystem, lockfiles, minified and generated files. Tests by path (`*.test.*`, `*.spec.*`, `test_*.py`, `*_test.go`, `*Test.java`, `tests/`, `e2e/`…); docs and data by language, so a README in `tests/` is docs. Shows cloc's progress line; temp CSVs are always deleted. Patterns live in `cloc-patterns.sh`. Any `-option` falls back to a single exclusion-only pass; `command cloc` for the raw tool |
 | `clc`             | Clean every cache (pacman, AUR, pnpm/npm/pip/go, journal, Docker) and report freed space |
