@@ -63,7 +63,7 @@ the source of truth. Commit or stash anything local before running.
 | [`modprobe/`](modprobe/README.md)      | Kernel module options (rtw89 WiFi power-save hang) |
 | [`templates/`](templates/README.md)    | xournalpp default template |
 | [`nvidia/`](nvidia/README.md)          | **Optional** NVIDIA driver installer (not run by `install.sh`) |
-| [`optional-scripts/`](optional-scripts/README.md) | **Optional** helpers: hardening, data-disk setup, cache migration, WiFi fixes |
+| [`optional-scripts/`](optional-scripts/README.md) | **Optional** helpers: hardening, data-disk setup, cache migration, WiFi fixes, PostgreSQL auth |
 
 ## Optional extras
 
@@ -73,6 +73,7 @@ Run manually after `install.sh`. Each is idempotent.
 bash optional-scripts/system-hardening.sh         # /boot fmask, sysctl, GRUB, fstab nofail
 bash optional-scripts/setup-data-disk.sh          # partition + mount a second disk as /mnt/data
 bash optional-scripts/wifi-off-when-wired.sh      # WiFi radio off while a cable is connected
+sudo bash optional-scripts/postgres-hardening.sh  # require passwords in local PostgreSQL
 sudo bash optional-scripts/migrate-to-mnt-data.sh # offload caches and dev tool stores to /mnt/data
 bash termclip/instalation.sh                      # clipboard utilities: c, cc, cpwd, crp, v
 ./nvidia/install-nvidia.sh                        # NVIDIA dGPU on hybrid laptops

@@ -149,3 +149,22 @@ systemctl stop <service>   # if applicable (e.g. docker)
 rm <symlink>
 mv <new-location> <original-path>
 ```
+
+## postgres-hardening.sh
+
+Stop a local PostgreSQL from accepting any password. Replaces `trust` in
+`pg_hba.conf` with `peer` (local socket) and `scram-sha-256` (TCP), after
+prompting for a new password for the `postgres` role.
+
+- Idempotent: exits cleanly when no `trust` rule remains.
+- Reloads the service, so open connections are kept.
+- Checks that a wrong password is rejected and the new one works.
+- Leaves no backup file. If a step fails, the original rules are restored from
+  memory; the new password is kept.
+
+Affects every database in the cluster: apps connecting as `postgres` over TCP
+need the new password afterwards.
+
+```bash
+sudo bash ~/arch-config/optional-scripts/postgres-hardening.sh
+```
