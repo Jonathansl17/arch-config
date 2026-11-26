@@ -54,6 +54,14 @@ bound to `ActivateProjectToolWindow` in the keymap: that action hides an active
 tool window and consumes the key before `FocusEditor` runs. Mnemonics are
 disabled (`intellij-ui.lnf.xml`) so the unconsumed key does not open the Edit menu.
 
+## IntelliJ advanced settings (`intellij-advancedSettings.xml`)
+
+Deployed to `<config>/options/advancedSettings.xml`. Notable entry:
+`compiler.automake.allow.when.app.running = true`, which lets auto-build
+recompile while a Spring Boot app is running so DevTools can restart it.
+"Build project automatically" itself is a per-project setting stored in
+`.idea/workspace.xml`, so it has to be enabled in each project.
+
 ## IdeaVim extras (`ideavimrc`)
 
 Loaded plugins (no manager, IdeaVim bundles them):

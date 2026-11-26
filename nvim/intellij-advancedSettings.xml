@@ -1,0 +1,17 @@
+<application>
+  <component name="AdvancedSettings">
+    <option name="settings">
+      <map>
+        <entry key="cidr.path.console.filter.slow.environment" value="false" />
+        <entry key="compiler.automake.allow.when.app.running" value="true" />
+        <entry key="confirm.rerun.with.termination" value="false" />
+        <entry key="gateway.wsl.open.projects.natively" value="true" />
+        <entry key="open.devcontainer.projects.natively" value="true" />
+        <entry key="se.text.search" value="false" />
+        <entry key="search.everywhere.recent.at.top" value="false" />
+        <entry key="search.everywhere.wait.for.contributors" value="false" />
+        <entry key="searcheverywhere.ml.typos.enable" value="false" />
+      </map>
+    </option>
+  </component>
+</application>

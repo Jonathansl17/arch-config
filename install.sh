@@ -94,6 +94,7 @@ install_intellij_configs() {
     install_file "nvim/intellij-keymap.xml" "$dir/keymaps/XWin copy.xml"
     install_file "nvim/intellij-ide.general.xml" "$dir/options/ide.general.xml"
     install_file "nvim/intellij-ui.lnf.xml" "$dir/options/ui.lnf.xml"
+    install_file "nvim/intellij-advancedSettings.xml" "$dir/options/advancedSettings.xml"
 }
 
 # --- 0. Minimum prerequisites (git to clone AUR, base-devel for makepkg) ---
