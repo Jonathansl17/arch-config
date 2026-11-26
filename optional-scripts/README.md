@@ -4,23 +4,25 @@ Standalone helpers. Not part of `install.sh`. Run only if you want them.
 
 ## setup-data-disk.sh
 
-Interactive bootstrap for a fresh PC: partitions a chosen disk as GPT,
-creates ext4 with `LABEL=data`, appends fstab entry with `nofail` +
-`x-systemd.device-timeout=10`, and mounts it at `/mnt/data`.
+Interactive bootstrap for `/mnt/data`. Reuses an existing ext4 `LABEL=data`
+partition (at least 1 GiB, not a Microsoft partition type) when one exists.
+Otherwise lists spare disks, names what is on each one (Windows, macOS,
+Linux, unknown data, empty), and wipes the chosen disk into a single ext4
+`LABEL=data` partition. Adds a `nofail` + `x-systemd.device-timeout=10` fstab
+entry and mounts it. After erasing an OS it regenerates the GRUB menu.
 
 Safety:
-- Detects the disk hosting `/`, `/home`, `/boot` and refuses to touch them.
-- Lists candidate disks with `[SKIP]` / `[OK]` markers.
-- Requires typing the device path AND `DESTROY` to proceed.
-- Idempotent: if `/mnt/data` already mounted from a `LABEL=data` partition,
-  exits cleanly. If partition exists but unmounted, skips partitioning and
-  only adds fstab + mounts.
+- Never offers the disk holding `/`, `/home` or `/boot`.
+- Wiping requires typing the device path AND `DESTROY`.
+- No spare disk: exits without mounting or changing anything.
 
 ```bash
-bash ~/arch-config/optional-scripts/setup-data-disk.sh
+sudo bash ~/arch-config/optional-scripts/setup-data-disk.sh
 ```
 
-Run this **first** on a new PC, then `migrate-to-mnt-data.sh`.
+`migrate-to-mnt-data.sh` runs the same flow on its own, so calling this first
+is optional. Shared logic lives in `lib/`; detection tests in
+`tests/disk-detect.test.sh`.
 
 ## migrate-to-mnt-data.sh
 
@@ -35,7 +37,9 @@ Targets:
 - `/var/cache/pacman/pkg`
 - `/var/lib/docker`
 
-Requires `/mnt/data` mounted. Idempotent. Run as root. Close browsers/IDEs first.
+If `/mnt/data` is not set up, runs the `setup-data-disk.sh` flow first
+(detects Windows/other OS on a spare disk and erases it only after `DESTROY`).
+Idempotent. Run as root. Close browsers/IDEs first.
 
 ```bash
 sudo ./migrate-to-mnt-data.sh

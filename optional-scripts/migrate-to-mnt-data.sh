@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Migrate caches and heavy data to /mnt/data via symlinks.
 # Future writes auto-go to /mnt/data because original paths are symlinks.
+# If /mnt/data is not set up, offers to wipe a spare disk (naming any Windows,
+# macOS or Linux found on it) after the user types DESTROY. Never touches the
+# disk holding /, /home or /boot, and stops cleanly when no spare disk exists.
 # Idempotent. Safe to re-run.
 #
 # Strategy:
@@ -34,45 +37,15 @@ if [[ -z "$USER_HOME" || ! -d "$USER_HOME" ]]; then
   exit 1
 fi
 
-ensure_data_mounted() {
-  if mountpoint -q "$DATA"; then
-    return 0
-  fi
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/disk-detect.sh
+source "$SCRIPT_DIR/lib/disk-detect.sh"
+# shellcheck source=lib/disk-format.sh
+source "$SCRIPT_DIR/lib/disk-format.sh"
+# shellcheck source=lib/data-disk-setup.sh
+source "$SCRIPT_DIR/lib/data-disk-setup.sh"
 
-  echo "$DATA not mounted. Attempting to mount..."
-  mkdir -p "$DATA"
-
-  # 1. Try fstab entry (mount knows the device)
-  if mount "$DATA" 2>/dev/null && mountpoint -q "$DATA"; then
-    echo "  mounted via fstab."
-    return 0
-  fi
-
-  # 2. Detect candidate device: ext4 partition labeled "data" not on the
-  #    disk that holds /
-  local root_disk dev
-  root_disk=$(lsblk -no PKNAME "$(findmnt -no SOURCE /)" 2>/dev/null)
-  dev=$(lsblk -lnpo NAME,FSTYPE,LABEL | awk -v rd="$root_disk" '
-    $2=="ext4" && $3=="data" {
-      d=$1; sub("p[0-9]+$","",d); sub("/dev/","",d)
-      if (d != rd) { print $1; exit }
-    }')
-
-  if [[ -n "$dev" ]]; then
-    echo "  found candidate device $dev (ext4 LABEL=data)."
-    if mount "$dev" "$DATA" 2>/dev/null && mountpoint -q "$DATA"; then
-      echo "  mounted ad-hoc. Add fstab entry to make it persistent:"
-      echo "    UUID=$(blkid -s UUID -o value "$dev")  $DATA  ext4  rw,relatime,x-gvfs-show  0 2"
-      return 0
-    fi
-  fi
-
-  echo "ERROR: could not mount $DATA. Add device to fstab or mount manually."
-  echo "Available block devices:"
-  lsblk -f
-  exit 1
-}
-ensure_data_mounted
+ensure_data_disk || exit 1
 
 cat <<'WARN'
 === WARNING ===
