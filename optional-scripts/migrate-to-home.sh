@@ -31,6 +31,11 @@ if [[ -z "$USER_HOME" || ! -d "$USER_HOME" ]]; then
 fi
 SCREENSHOTS_DIR="$USER_HOME/screenshots"
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/ide-safety.sh
+source "$SCRIPT_DIR/lib/ide-safety.sh"
+ensure_ides_closed "$USER_NAME" || exit 1
+
 # move_existing SRC DEST OWNER
 # Move a real directory at SRC into DEST. No-op if SRC missing or equals DEST.
 # Used for system stores where the active path is configured elsewhere (pacman
@@ -306,6 +311,7 @@ for d in "${USER_DIRS[@]}"; do
   flat="${d#.}"
   migrate "$USER_HOME/$d" "$USER_HOME/$flat" user
 done
+pin_maven_local_repo "$USER_HOME" "$USER_NAME"
 
 echo
 echo "=== User: screenshots (REAL dir in \$HOME, no symlink) ==="

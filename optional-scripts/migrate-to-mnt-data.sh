@@ -44,6 +44,10 @@ source "$SCRIPT_DIR/lib/disk-detect.sh"
 source "$SCRIPT_DIR/lib/disk-format.sh"
 # shellcheck source=lib/data-disk-setup.sh
 source "$SCRIPT_DIR/lib/data-disk-setup.sh"
+# shellcheck source=lib/ide-safety.sh
+source "$SCRIPT_DIR/lib/ide-safety.sh"
+
+ensure_ides_closed "$USER_NAME" || exit 1
 
 ensure_data_disk || exit 1
 
@@ -167,6 +171,7 @@ USER_DIRS=(
 for d in "${USER_DIRS[@]}"; do
   migrate "$USER_HOME/$d" "$DATA/user/home-dirs/$d" user
 done
+pin_maven_local_repo "$USER_HOME" "$USER_NAME"
 
 echo
 echo "=== User: screenshots (REAL dir in \$HOME, never offloaded) ==="

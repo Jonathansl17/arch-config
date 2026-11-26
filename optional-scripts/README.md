@@ -39,7 +39,10 @@ Targets:
 
 If `/mnt/data` is not set up, runs the `setup-data-disk.sh` flow first
 (detects Windows/other OS on a spare disk and erases it only after `DESTROY`).
-Idempotent. Run as root. Close browsers/IDEs first.
+Idempotent. Run as root. Close browsers/IDEs first: the script refuses to
+run while IntelliJ or VS Code is open, and pins Maven's `localRepository` to
+`~/.m2/repository` in `~/.m2/settings.xml` (created only when missing) so IDEs
+keep a path that survives the move (see `lib/ide-safety.sh`).
 
 ```bash
 sudo ./migrate-to-mnt-data.sh
@@ -52,7 +55,8 @@ Flattens caches/dev stores directly under `$HOME` (no nesting). Targets:
 `~/.gradle`, `~/.m2`, ...), `~/share-<name>` for `~/.local/share/*`.
 User dotdirs become symlinks to their flat target. Use to consolidate
 everything on the Arch disk; cleans up legacy `~/storage` and `~/system`
-nests if present.
+nests if present. Applies the same IDE guard and Maven pin as
+`migrate-to-mnt-data.sh`.
 
 ```bash
 sudo ./migrate-to-home.sh
