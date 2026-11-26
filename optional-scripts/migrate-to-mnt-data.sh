@@ -8,9 +8,9 @@
 #
 # Strategy:
 #   - Whole ~/.cache → /mnt/data/user/cache (catches ALL XDG-cache apps)
-#   - Heavy dev tool stores (~/.gradle, ~/.m2, ~/.npm, ~/.cargo, etc.)
+#   - Heavy dev tool stores (~/.gradle, ~/.npm, ~/.cargo, etc.)
 #   - System: /var/cache/pacman/pkg, /var/lib/docker → /mnt/data/system/* (symlink)
-#   - screenshots stay a REAL dir in /home/<user>/screenshots (never offloaded)
+#   - ~/screenshots and ~/.m2 stay REAL dirs in $HOME (lib/keep-in-home.sh)
 #
 # Run with all desktop apps closed (browsers, IDEs) to avoid open-file races.
 
@@ -46,6 +46,8 @@ source "$SCRIPT_DIR/lib/disk-format.sh"
 source "$SCRIPT_DIR/lib/data-disk-setup.sh"
 # shellcheck source=lib/ide-safety.sh
 source "$SCRIPT_DIR/lib/ide-safety.sh"
+# shellcheck source=lib/keep-in-home.sh
+source "$SCRIPT_DIR/lib/keep-in-home.sh"
 
 ensure_ides_closed "$USER_NAME" || exit 1
 
@@ -144,7 +146,6 @@ echo
 echo "=== User: dev tool stores ==="
 USER_DIRS=(
   .gradle           # Java/Gradle
-  .m2               # Maven
   .npm              # npm cache
   .cargo            # Rust toolchain + cache
   .rustup           # Rust toolchains
@@ -171,27 +172,12 @@ USER_DIRS=(
 for d in "${USER_DIRS[@]}"; do
   migrate "$USER_HOME/$d" "$DATA/user/home-dirs/$d" user
 done
-pin_maven_local_repo "$USER_HOME" "$USER_NAME"
 
 echo
-echo "=== User: screenshots (REAL dir in \$HOME, never offloaded) ==="
-SCREENSHOTS_DIR="$USER_HOME/screenshots"
-echo "[*] $SCREENSHOTS_DIR"
-# Screenshots stay on the home disk. If a prior run symlinked ~/screenshots to
-# /mnt/data, pull the data back and restore a plain directory in $HOME.
-if [[ -L "$SCREENSHOTS_DIR" ]]; then
-  cur=$(readlink -f "$SCREENSHOTS_DIR" || true)
-  echo "  [pull]  $SCREENSHOTS_DIR symlink → $cur, restoring real dir"
-  rm "$SCREENSHOTS_DIR"
-  mkdir -p "$SCREENSHOTS_DIR"
-  if [[ -n "$cur" && -d "$cur" ]]; then
-    rsync -aHAX --info=progress2 "$cur/" "$SCREENSHOTS_DIR/"
-    rm -rf "$cur"
-  fi
-else
-  mkdir -p "$SCREENSHOTS_DIR"
-fi
-chown -R "$USER_NAME:$USER_NAME" "$SCREENSHOTS_DIR"
+echo "=== User: dirs kept as REAL dirs in \$HOME (never offloaded) ==="
+for d in "${KEEP_IN_HOME_DIRS[@]}"; do
+  keep_real_dir "$USER_HOME/$d" "$USER_NAME"
+done
 
 # Update sxhkd Print binding to point at the new screenshots location.
 update_sxhkd_screenshots() {
@@ -209,7 +195,7 @@ update_sxhkd_screenshots() {
   done
   pkill -USR1 sxhkd 2>/dev/null && echo "  [sxhkd] reloaded" || true
 }
-update_sxhkd_screenshots "$SCREENSHOTS_DIR"
+update_sxhkd_screenshots "$USER_HOME/screenshots"
 
 echo
 echo "=== User: heavy ~/.local/share entries ==="

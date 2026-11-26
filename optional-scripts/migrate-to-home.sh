@@ -5,7 +5,7 @@
 #   - User cache:    ~/cache       (symlinked from ~/.cache)
 #   - Dev tool dirs: ~/<name>      (symlinked from ~/.<name>, dot stripped)
 #   - Share entries: ~/share-<name> (symlinked from ~/.local/share/<name>)
-#   - Screenshots:   ~/screenshots (REAL dir, no symlink)
+#   - Kept real:     ~/screenshots, ~/.m2 (lib/keep-in-home.sh)
 #
 # Idempotent. Safe to re-run. Handles migration from prior nested layouts
 # (~/storage/user/..., ~/system/...) and from /var-based defaults.
@@ -34,6 +34,8 @@ SCREENSHOTS_DIR="$USER_HOME/screenshots"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/ide-safety.sh
 source "$SCRIPT_DIR/lib/ide-safety.sh"
+# shellcheck source=lib/keep-in-home.sh
+source "$SCRIPT_DIR/lib/keep-in-home.sh"
 ensure_ides_closed "$USER_NAME" || exit 1
 
 # move_existing SRC DEST OWNER
@@ -279,7 +281,6 @@ echo
 echo "=== User: dev tool stores (~/.<name> → ~/<name>) ==="
 USER_DIRS=(
   .gradle           # Java/Gradle
-  .m2               # Maven
   .npm              # npm cache
   .cargo            # Rust toolchain + cache
   .rustup           # Rust toolchains
@@ -311,24 +312,12 @@ for d in "${USER_DIRS[@]}"; do
   flat="${d#.}"
   migrate "$USER_HOME/$d" "$USER_HOME/$flat" user
 done
-pin_maven_local_repo "$USER_HOME" "$USER_NAME"
 
 echo
-echo "=== User: screenshots (REAL dir in \$HOME, no symlink) ==="
-echo "[*] $SCREENSHOTS_DIR"
-if [[ -L "$SCREENSHOTS_DIR" ]]; then
-  cur=$(readlink -f "$SCREENSHOTS_DIR" || true)
-  echo "  [pull]  $SCREENSHOTS_DIR symlink → $cur, restoring real dir"
-  rm "$SCREENSHOTS_DIR"
-  mkdir -p "$SCREENSHOTS_DIR"
-  if [[ -n "$cur" && -d "$cur" ]]; then
-    rsync -aHAX --info=progress2 "$cur/" "$SCREENSHOTS_DIR/"
-    rm -rf "$cur"
-  fi
-else
-  mkdir -p "$SCREENSHOTS_DIR"
-fi
-chown -R "$USER_NAME:$USER_NAME" "$SCREENSHOTS_DIR"
+echo "=== User: dirs kept as REAL dirs in \$HOME (never offloaded) ==="
+for d in "${KEEP_IN_HOME_DIRS[@]}"; do
+  keep_real_dir "$USER_HOME/$d" "$USER_NAME"
+done
 
 # Update sxhkd Print binding to point at the new screenshots location.
 update_sxhkd_screenshots() {

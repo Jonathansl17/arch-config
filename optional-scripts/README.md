@@ -21,8 +21,7 @@ sudo bash ~/arch-config/optional-scripts/setup-data-disk.sh
 ```
 
 `migrate-to-mnt-data.sh` runs the same flow on its own, so calling this first
-is optional. Shared logic lives in `lib/`; detection tests in
-`tests/disk-detect.test.sh`.
+is optional. Shared logic lives in `lib/`; tests in `tests/`.
 
 ## migrate-to-mnt-data.sh
 
@@ -31,7 +30,7 @@ via symlinks. Future writes auto-redirect because originals become symlinks.
 
 Targets:
 - `~/.cache` (whole dir → catches every XDG-cache app)
-- `~/.gradle ~/.m2 ~/.npm ~/.cargo ~/.nvm ~/.jdks ~/.javacpp ~/.android`
+- `~/.gradle ~/.npm ~/.cargo ~/.nvm ~/.jdks ~/.javacpp ~/.android`
   `~/.vscode ~/.vscode-server ~/.codex ~/.claude ~/.net ~/.dotnet ~/.pipx`
 - `~/.local/share/{pnpm,JetBrains,pipx,Steam,flatpak,containers}`
 - `/var/cache/pacman/pkg`
@@ -39,10 +38,12 @@ Targets:
 
 If `/mnt/data` is not set up, runs the `setup-data-disk.sh` flow first
 (detects Windows/other OS on a spare disk and erases it only after `DESTROY`).
-Idempotent. Run as root. Close browsers/IDEs first: the script refuses to
-run while IntelliJ or VS Code is open, and pins Maven's `localRepository` to
-`~/.m2/repository` in `~/.m2/settings.xml` (created only when missing) so IDEs
-keep a path that survives the move (see `lib/ide-safety.sh`).
+`~/screenshots` and `~/.m2` always stay real dirs in `$HOME`; a symlink left
+by an earlier run is pulled back (`lib/keep-in-home.sh`). Keeping `~/.m2` put
+gives IDEs a Maven repository path that never changes.
+
+Idempotent. Run as root. Refuses to run while IntelliJ or VS Code is open,
+since IDEs keep stale state when cache paths move (`lib/ide-safety.sh`).
 
 ```bash
 sudo ./migrate-to-mnt-data.sh
@@ -52,11 +53,11 @@ sudo ./migrate-to-mnt-data.sh
 
 Flattens caches/dev stores directly under `$HOME` (no nesting). Targets:
 `~/pacman-pkg`, `~/docker`, `~/cache`, `~/<devtool>` (dot stripped from
-`~/.gradle`, `~/.m2`, ...), `~/share-<name>` for `~/.local/share/*`.
+`~/.gradle`, `~/.npm`, ...), `~/share-<name>` for `~/.local/share/*`.
 User dotdirs become symlinks to their flat target. Use to consolidate
 everything on the Arch disk; cleans up legacy `~/storage` and `~/system`
-nests if present. Applies the same IDE guard and Maven pin as
-`migrate-to-mnt-data.sh`.
+nests if present. Applies the same IDE guard and keeps
+`~/screenshots` and `~/.m2` as real dirs, like `migrate-to-mnt-data.sh`.
 
 ```bash
 sudo ./migrate-to-home.sh
