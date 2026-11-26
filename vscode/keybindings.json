@@ -237,19 +237,9 @@
     "command": "-workbench.action.toggleAuxiliaryBar"
   },
   {
-    "key": "alt+e",
-    "command": "workbench.view.explorer",
-    "when": "!sideBarVisible || activeViewlet !=   'workbench.view.explorer"
-  },
-  {
     "key": "ctrl+shift+e",
     "command": "-workbench.view.explorer",
     "when": "viewContainer.workbench.view.explorer.enabled"
-  },
-  {
-    "key": "alt+e",
-    "command": "workbench.view.explorer",
-    "when": "!sideBarVisible || activeViewlet !=   'workbench.view.explorer"
   },
   {
     "key": "alt+r",
@@ -342,7 +332,13 @@
 },
 {
     "key": "alt+e",
-    "command": "workbench.view.explorer"
+    "command": "workbench.view.explorer",
+    "when": "!filesExplorerFocus"
+},
+{
+    "key": "alt+e",
+    "command": "workbench.action.focusActiveEditorGroup",
+    "when": "filesExplorerFocus"
 },
 {
     "key": "alt+r",

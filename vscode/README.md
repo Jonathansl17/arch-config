@@ -22,7 +22,7 @@ primary one (works regardless of editor/nvim focus).
 
 | Keys          | Action                              |
 |---------------|-------------------------------------|
-| `alt+e`       | Show explorer                       |
+| `alt+e`       | Toggle focus explorer <-> editor    |
 | `alt+r`       | Show explorer / toggle sidebar      |
 | `alt+f`       | Find in files                       |
 | `alt+right` / `alt+left` | Next / previous editor |
