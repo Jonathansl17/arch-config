@@ -16,6 +16,10 @@
     <keyboard-shortcut first-keystroke="ctrl f4" />
     <keyboard-shortcut first-keystroke="alt q" />
   </action>
+  <action id="CommentByLineComment">
+    <keyboard-shortcut first-keystroke="ctrl slash" />
+    <keyboard-shortcut first-keystroke="shift ctrl 7" />
+  </action>
   <action id="Console.TableResult.DeleteRows" />
   <action id="DatabaseView.FullTextSearch" />
   <action id="DatabaseView.Tools" />
@@ -55,6 +59,7 @@
   <action id="SpeedSearch" />
   <action id="Terminal.SearchInCommandHistory" />
   <action id="TextSearchAction" />
+  <action id="ToggleBookmark7" />
   <action id="ToggleFindInSelection" />
   <action id="Tree-selectChild">
     <keyboard-shortcut first-keystroke="l" />

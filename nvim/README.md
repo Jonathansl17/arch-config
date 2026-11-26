@@ -54,6 +54,10 @@ bound to `ActivateProjectToolWindow` in the keymap: that action hides an active
 tool window and consumes the key before `FocusEditor` runs. Mnemonics are
 disabled (`intellij-ui.lnf.xml`) so the unconsumed key does not open the Edit menu.
 
+`CommentByLineComment` is bound to both `ctrl+/` and `ctrl+shift+7`: on the
+latam layout `/` is `shift+7`, so the second binding is the physical key for
+`ctrl+/`. `ToggleBookmark7` is unbound to free that chord.
+
 ## IntelliJ advanced settings (`intellij-advancedSettings.xml`)
 
 Deployed to `<config>/options/advancedSettings.xml`. Notable entry:
