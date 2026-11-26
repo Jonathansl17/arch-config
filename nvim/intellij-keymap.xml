@@ -9,6 +9,9 @@
     <keyboard-shortcut first-keystroke="ctrl y" />
   </action>
   <action id="ActivateBookmarksToolWindow" />
+  <action id="ActivateProjectToolWindow">
+    <keyboard-shortcut first-keystroke="alt 1" />
+  </action>
   <action id="CloseContent">
     <keyboard-shortcut first-keystroke="ctrl f4" />
     <keyboard-shortcut first-keystroke="alt q" />
@@ -21,6 +24,10 @@
   </action>
   <action id="EditorContextInfo" />
   <action id="EditorDeleteLine" />
+  <action id="FocusEditor">
+    <keyboard-shortcut first-keystroke="escape" />
+    <keyboard-shortcut first-keystroke="alt e" />
+  </action>
   <action id="HideActiveWindow">
     <keyboard-shortcut first-keystroke="shift escape" />
     <keyboard-shortcut first-keystroke="alt m" />

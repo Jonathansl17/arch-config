@@ -22,6 +22,12 @@ set highlightedyank
 " File tree / navigation
 nnoremap <leader>o :action ActivateProjectToolWindow<CR>
 nnoremap <leader>F :action SelectInProjectView<CR>
+" alt+e: editor -> Project tree. From the tree, the keymap binds alt+e to
+" FocusEditor, so it returns to the editor without hiding the tree.
+sethandler <A-e> a:vim
+nnoremap <A-e> :action ActivateProjectToolWindow<CR>
+vnoremap <A-e> <Esc>:action ActivateProjectToolWindow<CR>
+inoremap <A-e> <Esc>:action ActivateProjectToolWindow<CR>
 nnoremap <Tab> :action NextTab<CR>
 nnoremap <S-Tab> :action PreviousTab<CR>
 

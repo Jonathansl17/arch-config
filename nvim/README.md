@@ -47,6 +47,12 @@ JetBrains IDEs.
 
 Explorer toggle / sidebar in VS Code is handled by native keybindings
 (`alt+e`, `alt+r`), not this block — see `../vscode/README.md`.
+In IntelliJ the same `alt+e` focuses the Project tool window from the editor
+(IdeaVim `<A-e>` map in `ideavimrc`) and returns to the editor from the tree
+(`FocusEditor` in `intellij-keymap.xml`) without hiding it. The key must not be
+bound to `ActivateProjectToolWindow` in the keymap: that action hides an active
+tool window and consumes the key before `FocusEditor` runs. Mnemonics are
+disabled (`intellij-ui.lnf.xml`) so the unconsumed key does not open the Edit menu.
 
 ## IdeaVim extras (`ideavimrc`)
 
