@@ -11,6 +11,10 @@ set scrolloff=8
 set nowrap
 set virtualedit=onemore
 set clipboard+=unnamedplus
+" Mouse selections enter Select mode (typing replaces the text, like a plain
+" editor) instead of Visual, so insert mode is kept after selecting with the mouse.
+" ideaselection does the same for IDE-made selections, e.g. the one Ctrl+Z restores.
+set selectmode=mouse,ideaselection
 
 " IdeaVim extensions
 set surround
