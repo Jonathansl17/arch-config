@@ -40,6 +40,10 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/disk-detect.sh
 source "$SCRIPT_DIR/lib/disk-detect.sh"
+# shellcheck source=lib/grub-config.sh
+source "$SCRIPT_DIR/lib/grub-config.sh"
+# shellcheck source=lib/windows-leftovers.sh
+source "$SCRIPT_DIR/lib/windows-leftovers.sh"
 # shellcheck source=lib/disk-format.sh
 source "$SCRIPT_DIR/lib/disk-format.sh"
 # shellcheck source=lib/data-disk-setup.sh

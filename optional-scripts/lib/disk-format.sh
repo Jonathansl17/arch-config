@@ -2,12 +2,12 @@
 # Destructive and system-changing steps for the /mnt/data setup.
 # Sourced, never executed. Every function assumes it runs as root and that the
 # caller already obtained explicit confirmation from the user.
-# Requires lib/disk-detect.sh (DATA_LABEL, DATA_FSTYPE).
+# Requires lib/disk-detect.sh (DATA_LABEL, DATA_FSTYPE), lib/grub-config.sh
+# and lib/windows-leftovers.sh (bootloader refresh).
 
 readonly DATA_PART_TYPECODE="8300"
 readonly FSTAB_FILE="/etc/fstab"
 readonly FSTAB_OPTS="rw,relatime,nofail,x-systemd.device-timeout=10,x-gvfs-show"
-readonly GRUB_CFG="/boot/grub/grub.cfg"
 readonly REQUIRED_TOOLS=(sgdisk:gptfdisk wipefs:util-linux mkfs.ext4:e2fsprogs partprobe:parted)
 
 # require_disk_tools: install missing partitioning tools via pacman.
@@ -81,13 +81,16 @@ mount_data() {
     mountpoint -q "$1" || mount "$1"
 }
 
-# refresh_bootloader: drop boot entries of an erased OS from GRUB.
+# refresh_bootloader KIND: drop boot entries of an erased OS of type KIND.
 refresh_bootloader() {
-    if ! command -v grub-mkconfig >/dev/null 2>&1 || [[ ! -f "$GRUB_CFG" ]]; then
+    local kind="$1"
+    if ! grub_available; then
         echo "  [boot] GRUB not found; remove stale boot entries manually (efibootmgr)."
         return 0
     fi
-    grub-mkconfig -o "$GRUB_CFG" || return 1
+    if [[ "$kind" == windows ]] && ! windows_installed; then
+        remove_windows_leftovers || return 1
+    fi
+    regenerate_grub || return 1
     echo "  [boot] GRUB menu regenerated."
-    echo "  [boot] leftover firmware entry, if any: efibootmgr | grep -i windows"
 }

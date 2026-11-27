@@ -82,7 +82,7 @@ prepare_new_data_disk() {
     part=$(format_data_disk "$disk") || return 1
     ensure_fstab_entry "$part" "$DATA" || return 1
     mount_data "$DATA" || return 1
-    [[ "$kind" == empty || "$kind" == other ]] || refresh_bootloader
+    [[ "$kind" == empty || "$kind" == other ]] || refresh_bootloader "$kind"
 }
 
 # ensure_data_disk: leave a valid data partition mounted at $DATA.
