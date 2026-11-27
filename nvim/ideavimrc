@@ -27,7 +27,8 @@ nnoremap <leader>F :action SelectInProjectView<CR>
 sethandler <A-e> a:vim
 nnoremap <A-e> :action ActivateProjectToolWindow<CR>
 vnoremap <A-e> <Esc>:action ActivateProjectToolWindow<CR>
-inoremap <A-e> <Esc>:action ActivateProjectToolWindow<CR>
+" <Action>() runs without leaving insert mode, so insert survives the round trip.
+imap <A-e> <Action>(ActivateProjectToolWindow)
 nnoremap <Tab> :action NextTab<CR>
 nnoremap <S-Tab> :action PreviousTab<CR>
 
