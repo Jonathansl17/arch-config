@@ -76,19 +76,8 @@ elif grep -q '^GRUB_TIMEOUT=0$' /etc/default/grub \
   && grep -q '^GRUB_TIMEOUT_STYLE=hidden$' /etc/default/grub; then
     c_skip "already applied"
 else
-    sudo cp /etc/default/grub "/etc/default/grub.bak-$TS"
-    if grep -q '^GRUB_TIMEOUT=' /etc/default/grub; then
-        sudo sed -i 's/^GRUB_TIMEOUT=.*/GRUB_TIMEOUT=0/' /etc/default/grub
-    else
-        echo 'GRUB_TIMEOUT=0' | sudo tee -a /etc/default/grub >/dev/null
-    fi
-    if grep -q '^GRUB_TIMEOUT_STYLE=' /etc/default/grub; then
-        sudo sed -i 's/^GRUB_TIMEOUT_STYLE=.*/GRUB_TIMEOUT_STYLE=hidden/' /etc/default/grub
-    else
-        echo 'GRUB_TIMEOUT_STYLE=hidden' | sudo tee -a /etc/default/grub >/dev/null
-    fi
-    sudo grub-mkconfig -o /boot/grub/grub.cfg \
-        && c_ok "GRUB regenerated (hold Shift at POST to force the menu)"
+    sudo bash "$REPO_DIR/optional-scripts/grub-hide.sh" \
+        && c_ok "GRUB regenerated (hold Shift or press Esc at boot for the menu)"
 fi
 
 #-----------------------------------------------------------------

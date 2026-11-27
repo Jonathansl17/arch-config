@@ -9,7 +9,10 @@ partition (at least 1 GiB, not a Microsoft partition type) when one exists.
 Otherwise lists spare disks, names what is on each one (Windows, macOS,
 Linux, unknown data, empty), and wipes the chosen disk into a single ext4
 `LABEL=data` partition. Adds a `nofail` + `x-systemd.device-timeout=10` fstab
-entry and mounts it. After erasing an OS it regenerates the GRUB menu.
+entry and mounts it. After erasing an OS it regenerates the GRUB menu the same
+way `grub-uki-fix.sh` does; after erasing Windows, and only when no disk holds
+Windows anymore, it also removes `/boot/EFI/Microsoft`, the firmware
+`Windows Boot Manager` entries, and turns os-prober off.
 
 Safety:
 - Never offers the disk holding `/`, `/home` or `/boot`.
@@ -90,6 +93,42 @@ bash ~/arch-config/optional-scripts/system-hardening.sh
 
 Backups of any modified system file are left next to the original as
 `<file>.bak-<timestamp>`.
+
+## grub-uki-fix.sh
+
+Fixes the kernel panic from the first GRUB entry on systems that boot a
+Unified Kernel Image. mkinitcpio builds only `/boot/EFI/Linux/arch-linux.efi`,
+so `/boot/initramfs-linux.img` never exists, yet GRUB's `10_linux` still emits
+a `vmlinuz-linux` + initramfs entry and puts it first (the default). Any
+`grub-mkconfig` brings it back.
+
+- Adds `NoExtract` for `etc/grub.d/10_linux` and `etc/grub.d/20_linux_xen` to
+  `/etc/pacman.conf` (backup `pacman.conf.bak-<timestamp>`) and deletes them,
+  so grub upgrades never reinstall them.
+- If no disk holds Windows but its boot files remain, asks before removing
+  them (`/boot/EFI/Microsoft`, firmware entries, `GRUB_DISABLE_OS_PROBER=true`).
+- Rebuilds `grub.cfg`; the UKI entry (`15_uki`) becomes the default.
+- Refuses to run when no UKI exists, since `10_linux` is then the only entry.
+
+Every GRUB rebuild in this folder (`grub-hide.sh`, `grub-show.sh`, the data
+disk flow) applies the same guard through `lib/grub-config.sh`.
+
+```bash
+sudo bash ~/arch-config/optional-scripts/grub-uki-fix.sh
+```
+
+## grub-hide.sh / grub-show.sh
+
+With a single OS there is nothing to pick. `grub-hide.sh` sets
+`GRUB_TIMEOUT=0` + `GRUB_TIMEOUT_STYLE=hidden` and boots the default entry
+straight away; hold **Shift** or press **Esc** while GRUB starts to get the
+menu once. `grub-show.sh` restores a visible menu with a 5 second countdown.
+Both are idempotent and back up `/etc/default/grub` before changing it.
+
+```bash
+sudo bash ~/arch-config/optional-scripts/grub-hide.sh
+sudo bash ~/arch-config/optional-scripts/grub-show.sh
+```
 
 ## wifi-suspend-fix.sh
 
